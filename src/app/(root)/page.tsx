@@ -1,7 +1,13 @@
-export default function Home() {
+import React from "react";
+
+const Home = async () => {
   return (
     <>
-      <h1>Home page</h1>
+      <section className="home">
+        <h1 className="home-heading">100% Transparency Cash Paluwagan.</h1>
+      </section>
     </>
   );
-}
+};
+
+export default Home;
