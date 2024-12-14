@@ -1,7 +1,7 @@
 /*eslint-disable @typescript-eslint/no-explicit-any */
-// Webhook for paymongo payments
 
-const handler = async (req: any, res: any) => {
+// Webhook for paymongo payments
+const POST = async (req: any, res: any) => {
   if (req.method === "POST") {
     console.log("===Webhook triggered===");
     const data = req.body.data;
@@ -60,4 +60,4 @@ const handler = async (req: any, res: any) => {
   }
 };
 
-export default handler;
+export default POST;
