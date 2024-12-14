@@ -1,14 +1,18 @@
-/*eslint-disable @typescript-eslint/no-explicit-any */
+// Webhook for PayMongo payments
+import { NextResponse } from "next/server";
 
-// Webhook for paymongo payments
-const POST = async (req: any, res: any) => {
-  if (req.method === "POST") {
+export async function POST(req: Request) {
+  try {
     console.log("===Webhook triggered===");
-    const data = req.body.data;
+
+    const body = await req.json();
+    const data = body.data;
+
     console.log(data);
-    console.log("===webhook end===");
+    console.log("===Webhook end===");
+
     if (data.attributes.type === "source.chargeable") {
-      // Gcash and Grab Pay
+      // GCash and GrabPay
       console.log("E-wallet Payment Chargeable");
 
       // Create a payment resource
@@ -38,26 +42,29 @@ const POST = async (req: any, res: any) => {
         }),
       };
 
-      fetch("https://api.paymongo.com/v1/payments", options)
-        .then((response) => response.json())
-        .then((response) => console.log(response))
-        .catch((err) => console.error(err));
+      const response = await fetch(
+        "https://api.paymongo.com/v1/payments",
+        options
+      );
+      const result = await response.json();
+      console.log(result);
     }
+
     if (data.attributes.type === "payment.paid") {
       // All Payment Types
-      // Add next steps for you
       console.log("Payment Paid");
-    }
-    if (data.attributes.type === "payment.failed") {
-      // Failed Payments - Cards Paymaya
       // Add next steps for you
-      console.log("Payment Failed");
     }
-    res.status(200).send("Webhook Received");
-  } else {
-    res.setHeader("Allow", "POST");
-    res.status(405).send("Method Not Allowed");
-  }
-};
 
-export default POST;
+    if (data.attributes.type === "payment.failed") {
+      // Failed Payments - Cards, PayMaya
+      console.log("Payment Failed");
+      // Add next steps for you
+    }
+
+    return NextResponse.json({ message: "Webhook received successfully" });
+  } catch (error) {
+    console.error("Error handling webhook:", error);
+    return NextResponse.json({ error: "An error occurred" }, { status: 500 });
+  }
+}
