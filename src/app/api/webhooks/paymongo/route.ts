@@ -16,38 +16,38 @@ export async function POST(req: Request) {
       console.log("E-wallet Payment Chargeable");
 
       // Create a payment resource
-    //   const options = {
-    //     method: "POST",
-    //     headers: {
-    //       Accept: "application/json",
-    //       "Content-Type": "application/json",
-    //       Authorization: `Basic ${Buffer.from(
-    //         process.env.PAYMONGO_SECRET!
-    //       ).toString("base64")}`,
-    //     },
-    //     body: JSON.stringify({
-    //       data: {
-    //         attributes: {
-    //           amount: data.attributes.data.attributes.amount,
-    //           source: {
-    //             id: `${data.attributes.data.id}`,
-    //             type: `${data.attributes.data.type}`,
-    //           },
-    //           description: data.attributes.data.attributes.description,
-    //           currency: "PHP",
-    //           statement_descriptor:
-    //             data.attributes.data.attributes.statement_descriptor,
-    //         },
-    //       },
-    //     }),
-    //   };
+      const options = {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Basic ${Buffer.from(
+            process.env.PAYMONGO_SECRET!
+          ).toString("base64")}`,
+        },
+        body: JSON.stringify({
+          data: {
+            attributes: {
+              amount: data.attributes.data.attributes.amount,
+              source: {
+                id: `${data.attributes.data.id}`,
+                type: `${data.attributes.data.type}`,
+              },
+              description: data.attributes.data.attributes.description,
+              currency: "PHP",
+              statement_descriptor:
+                data.attributes.data.attributes.statement_descriptor,
+            },
+          },
+        }),
+      };
 
-    //   const response = await fetch(
-    //     "https://api.paymongo.com/v1/payments",
-    //     options
-    //   );
-    //   const result = await response.json();
-    //   console.log(result);
+      const response = await fetch(
+        "https://api.paymongo.com/v1/payments",
+        options
+      );
+      const result = await response.json();
+      console.log(result);
     }
 
     if (data.attributes.type === "payment.paid") {
