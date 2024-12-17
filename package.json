@@ -21,7 +21,6 @@
     "qs": "^6.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-modal-video": "^2.0.2",
     "svix": "^1.44.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7"
@@ -31,7 +30,6 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/react-modal-video": "^1.2.3",
     "eslint": "^9",
     "eslint-config-next": "15.1.0",
     "postcss": "^8",
