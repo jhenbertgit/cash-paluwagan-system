@@ -1,18 +1,18 @@
 export const navLinks = [
   {
-    label: "Home",
-    route: "/",
-    icon: "/assets/icons/home.svg",
+    label: "Dashboard",
+    route: "/dashboard",
+    icon: "/assets/icons/dashboard.svg",
   },
 
   {
     label: "Profile",
     route: "/profile",
-    icon: "/assets/icons/profile.svg",
+    icon: "/assets/icons/user.svg",
   },
   {
-    label: "Buy Credits",
-    route: "/credits",
-    icon: "/assets/icons/bag.svg",
+    label: "Pay",
+    route: "/pay",
+    icon: "/assets/icons/peso.svg",
   },
 ];
