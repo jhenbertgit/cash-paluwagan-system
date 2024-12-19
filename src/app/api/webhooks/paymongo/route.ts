@@ -124,17 +124,18 @@ export async function POST(request: Request) {
       case "checkout_session.payment.paid": {
         console.log("Data Attributes: ", data?.attributes?.data?.attributes);
 
-        const { amount, metadata, payment_intent } =
-          data?.attributes?.data?.attributes;
+        const { metadata, payment_intent } = data?.attributes?.data?.attributes;
 
-        console.log("Amount: ", amount);
+        console.log("Amount: ", payment_intent?.attributes?.amount);
         console.log("Metadata: ", metadata);
         console.log("Payment Intent: ", payment_intent);
 
         // Create transaction record
         const transaction = {
           transactionId: payment_intent?.id,
-          amount: amount ? amount / 100 : 0, // Convert from cents
+          amount: payment_intent?.attributes?.amount
+            ? payment_intent.attributes.amount / 100
+            : 0, // Convert from cents
           memberId: metadata?.memberId,
           createdAt: new Date(),
         };
