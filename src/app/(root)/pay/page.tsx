@@ -1,27 +1,29 @@
 import Header from "@/components/shared/Header";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+
 import { checkoutPayment } from "@/lib/actions/transaction.action";
 import { getUserById } from "@/lib/actions/user.actions";
-import { auth } from "@clerk/nextjs/server";
-import Image from "next/image";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { auth } from "@clerk/nextjs/server";
 
-const Credits = async () => {
+const Pay = async () => {
   const { userId } = await auth();
 
   if (!userId) redirect("/sign-in");
 
   const user = await getUserById(userId);
 
-  const billing: CheckoutTransactionParams = {
+  const transaction: CheckoutTransactionParams = {
     name: `${user.firstName} ${user.lastName}`,
     email: user.email,
+    userId: userId,
   };
 
   const onCheckOut = async () => {
     "use server";
 
-    await checkoutPayment(billing);
+    await checkoutPayment(transaction);
   };
 
   return (
@@ -42,10 +44,10 @@ const Credits = async () => {
             width={200}
           />
 
-          <form action={onCheckOut} method="POST">
+          <form action={onCheckOut}>
             <Button
               type="submit"
-              className="button bg-purple-gradient bg-cover w-full"
+              className="bg-purple-gradient bg-cover w-full py-6 text-lg font-semibold rounded-3xl hover:opacity-90 transition-all shadow-lg hover:shadow-xl"
             >
               Checkout Payment
             </Button>
@@ -56,4 +58,4 @@ const Credits = async () => {
   );
 };
 
-export default Credits;
+export default Pay;

@@ -1,11 +1,18 @@
 "use server";
+
 import User from "../database/models/user.model";
 
 import { revalidatePath } from "next/cache";
 import { handleError } from "../utils";
 import { connectToDB } from "../database/mongoose";
 
-// CREATE
+/**
+ * Creates a new user in the database
+ * @async
+ * @param {CreateUserParams} user - User creation parameters
+ * @returns {Promise<Object>} Newly created user object
+ * @throws {Error} When database connection or user creation fails
+ */
 export async function createUser(user: CreateUserParams) {
   try {
     await connectToDB();
@@ -18,7 +25,13 @@ export async function createUser(user: CreateUserParams) {
   }
 }
 
-// READ
+/**
+ * Retrieves a user by their Clerk ID
+ * @async
+ * @param {string} userId - Clerk user ID
+ * @returns {Promise<Object>} User object if found
+ * @throws {Error} When user is not found or database connection fails
+ */
 export async function getUserById(userId: string) {
   try {
     await connectToDB();
@@ -33,7 +46,14 @@ export async function getUserById(userId: string) {
   }
 }
 
-// UPDATE
+/**
+ * Updates user information in the database
+ * @async
+ * @param {string} clerkId - Clerk user ID
+ * @param {UpdateUserParams} user - Updated user parameters
+ * @returns {Promise<Object>} Updated user object
+ * @throws {Error} When update fails or user is not found
+ */
 export async function updateUser(clerkId: string, user: UpdateUserParams) {
   try {
     await connectToDB();
@@ -50,7 +70,13 @@ export async function updateUser(clerkId: string, user: UpdateUserParams) {
   }
 }
 
-// DELETE
+/**
+ * Deletes a user from the database
+ * @async
+ * @param {string} clerkId - Clerk user ID
+ * @returns {Promise<Object|null>} Deleted user object or null
+ * @throws {Error} When user is not found or deletion fails
+ */
 export async function deleteUser(clerkId: string) {
   try {
     await connectToDB();
@@ -72,7 +98,14 @@ export async function deleteUser(clerkId: string) {
   }
 }
 
-// USE CREDITS
+/**
+ * Updates user's credit balance
+ * @async
+ * @param {string} userId - Database user ID
+ * @param {number} creditFee - Amount to modify credits (positive or negative)
+ * @returns {Promise<Object>} Updated user object with new credit balance
+ * @throws {Error} When credit update fails or user is not found
+ */
 export async function updateCredits(userId: string, creditFee: number) {
   try {
     await connectToDB();

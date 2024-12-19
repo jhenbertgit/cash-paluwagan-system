@@ -95,7 +95,7 @@
 }
 
 .root {
-  @apply flex min-h-screen w-full flex-col lg:flex-row bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400;
+  @apply flex min-h-screen w-full flex-col lg:flex-row bg-gradient-to-r from-blue-600 via-blue-500/90 to-blue-400/80;
 }
 
 .root-container {
@@ -236,10 +236,14 @@
   /* Dashboard*/
 
   .dashboard {
+    @apply mt-5 md:mt-8;
+  }
+
+  .dashboard-container {
     @apply flex flex-col lg:flex-row gap-4 mb-6 mt-5 md:mt-8;
   }
 
-  .dashboard-welcome {
+  .dashboard-card {
     @apply flex-1 bg-white border-2 border-purple-200/20 rounded-xl p-5 shadow-lg shadow-purple-200/10;
   }
 

@@ -1,23 +1,33 @@
-import { redirect } from "next/navigation";
+"use server";
 
+import { redirect } from "next/navigation";
+import { connectToDB } from "../database/mongoose";
+import Transaction from "../database/models/transaction.model";
+
+/**
+ * Processes a payment checkout through PayMongo payment gateway
+ * @param {CheckoutTransactionParams} params - The checkout parameters
+ * @throws {Error} When PayMongo secret key or server URL is missing
+ * @throws {Error} When checkout session creation fails
+ * @throws {Error} When checkout URL is missing in PayMongo response
+ */
 export async function checkoutPayment({
   name,
   email,
+  userId,
 }: CheckoutTransactionParams) {
   const secretKey = process.env.PAYMONGO_SECRET;
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
-  if (!secretKey) {
-    console.error("Public key for PayMongo is not set.");
-    throw new Error("PayMongo public key is missing.");
+  // Validate environment variables
+  if (!secretKey || !serverUrl) {
+    throw new Error(
+      !secretKey ? "PayMongo secret key is missing" : "Server URL is missing"
+    );
   }
 
-  if (!serverUrl) {
-    console.error("Server URL is not set.");
-    throw new Error("Server URL is missing.");
-  }
-
-  const url = "https://api.paymongo.com/v1/checkout_sessions";
+  const PAYMONGO_API_URL = "https://api.paymongo.com/v1/checkout_sessions";
+  const AMOUNT = 100000;
 
   const options = {
     method: "POST",
@@ -29,50 +39,69 @@ export async function checkoutPayment({
     body: JSON.stringify({
       data: {
         attributes: {
-          billing: {
-            name: name,
-            email: email,
-          },
+          billing: { name, email },
           send_email_receipt: false,
           show_description: true,
           show_line_items: true,
           line_items: [
-            { currency: "PHP", quantity: 1, name: "Paluwagan", amount: 100000 },
+            {
+              currency: "PHP",
+              quantity: 1,
+              name: "Paluwagan",
+              amount: AMOUNT,
+            },
           ],
-          /* qrph, billease, card, dob, dob_ubp, brankas_bdo, brankas_landbank,
-           * brankas_metrobank, gcash, grab_pay and paymaya
-           */
           payment_method_types: ["gcash", "grab_pay", "paymaya", "card"],
-          description: "Paluwagan",
+          description: "Paluwagan monthly amortization",
           success_url: `${serverUrl}/dashboard`,
           cancel_url: `${serverUrl}/pay`,
+          metadata: {
+            memberId: userId,
+          },
         },
       },
     }),
   };
 
   try {
-    const response = await fetch(url, options);
+    const response = await fetch(PAYMONGO_API_URL, options);
 
-    // Handle non-successful responses
     if (!response.ok) {
-      console.error("Error creating PayMongo session:", response.statusText);
       throw new Error(
         `Failed to create checkout session: ${response.statusText}`
       );
     }
 
     const session = await response.json();
-
-    // Validate session data
     const checkoutUrl = session?.data?.attributes?.checkout_url;
+
     if (!checkoutUrl) {
-      throw new Error("Checkout URL is missing in the PayMongo response.");
+      throw new Error("Checkout URL is missing in the PayMongo response");
     }
 
     redirect(checkoutUrl);
   } catch (error) {
-    console.error("An error occurred during checkout:", error);
+    if (!(error instanceof Error) || error.message !== "NEXT_REDIRECT") {
+      console.error("An error occurred during checkout:", error);
+      throw error;
+    }
     throw error;
+  }
+}
+
+export async function createTransaction(transaction: CreateTransactionParams) {
+  try {
+    await connectToDB();
+
+    const newTransaction = await Transaction.create({
+      ...transaction,
+      member: transaction.memberId,
+    });
+
+    console.log("New Transaction: ", newTransaction);
+
+    return JSON.parse(JSON.stringify(newTransaction));
+  } catch (error) {
+    console.log(error);
   }
 }

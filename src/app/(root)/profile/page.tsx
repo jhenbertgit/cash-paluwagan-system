@@ -30,11 +30,7 @@ const Profile = async () => {
             <h2 className="h2-bold text-dark-600">{user.creditBalance}</h2>
           </div>
         </div>
-
-        <div>{/* some content here */}</div>
       </section>
-
-      <section className="mt-8 md:mt-14"></section>
     </>
   );
 };
