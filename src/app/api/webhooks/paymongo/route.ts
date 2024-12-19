@@ -127,7 +127,7 @@ export async function POST(request: Request) {
         // Create transaction record
         const transaction = {
           transactionId: payment_intent?.id,
-          amount: amount / 100, // Convert from cents
+          amount: amount ? amount / 100 : 0, // Convert from cents
           memberId: metadata?.memberId,
           createdAt: new Date(),
         };
