@@ -122,9 +122,10 @@ export async function POST(request: Request) {
     // Handle checkout session events
     switch (type) {
       case "checkout_session.payment.paid": {
-        console.log("Data Attributes: ", data?.attributes?.data);
+        console.log("Data Attributes: ", data?.attributes?.data?.attributes);
 
-        const { amount, metadata, payment_intent } = data?.attributes?.data;
+        const { amount, metadata, payment_intent } =
+          data?.attributes?.data?.attributes;
 
         // Create transaction record
         const transaction = {
