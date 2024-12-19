@@ -17,7 +17,7 @@ const Pay = async () => {
   const transaction: CheckoutTransactionParams = {
     name: `${user.firstName} ${user.lastName}`,
     email: user.email,
-    userId: userId,
+    userId: user._id,
   };
 
   const onCheckOut = async () => {

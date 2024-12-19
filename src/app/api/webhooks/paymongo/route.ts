@@ -127,6 +127,10 @@ export async function POST(request: Request) {
         const { amount, metadata, payment_intent } =
           data?.attributes?.data?.attributes;
 
+        console.log("Amount: ", amount);
+        console.log("Metadata: ", metadata);
+        console.log("Payment Intent: ", payment_intent);
+
         // Create transaction record
         const transaction = {
           transactionId: payment_intent?.id,
