@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { createTransaction } from "@/lib/actions/transaction.action";
 
-const WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET_KEY;
+const WEBHOOK_SECRET = process.env.PAYMONGO_WEBHOOK_SECRET;
 const MAX_TIMESTAMP_DIFF = 5 * 60 * 1000; // 5 minutes in milliseconds
 
 interface SignatureParts {
