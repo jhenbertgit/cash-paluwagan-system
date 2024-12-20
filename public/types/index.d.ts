@@ -1,9 +1,4 @@
 /**
- * @namespace UserTypes
- * @description Types related to user management and authentication
- */
-
-/**
  * Parameters for creating a new user
  */
 interface CreateUserParams {
@@ -34,12 +29,6 @@ interface UpdateUserParams {
   /** URL to user's profile photo */
   photo: string;
 }
-
-/**
- * @namespace TransactionTypes
- * @description Types related to payment processing and transactions
- */
-
 /**
  * Parameters for checkout transaction
  */
@@ -62,60 +51,12 @@ interface CreateTransactionParams {
   amount: number;
   /** User ID of the member */
   memberId: string;
+  /** Transaction status */
+  status: "completed" | "failed" | "pending";
+  /** Payment method used */
+  paymentMethod?: string;
+  /** Error message for failed transactions */
+  error?: string;
   /** Transaction timestamp */
   createdAt: Date;
-}
-
-/**
- * @namespace URLTypes
- * @description Types for URL and query parameter handling
- */
-
-/**
- * Parameters for form URL query handling
- */
-interface FormUrlQueryParams {
-  /** Current search parameters */
-  searchParams: string;
-  /** Parameter key */
-  key: string;
-  /** Parameter value */
-  value: string | number | null;
-}
-
-/**
- * Parameters for URL query handling
- */
-interface UrlQueryParams {
-  /** Current parameters */
-  params: string;
-  /** Parameter key */
-  key: string;
-  /** Parameter value */
-  value: string | null;
-}
-
-/**
- * Parameters for removing URL query parameters
- */
-interface RemoveUrlQueryParams {
-  /** Current search parameters */
-  searchParams: string;
-  /** Keys to remove from URL */
-  keysToRemove: string[];
-}
-
-/**
- * Properties for search parameter handling
- */
-interface SearchParamProps {
-  /** Route parameters */
-  params: {
-    /** Resource identifier */
-    id: string;
-    /** Transformation type */
-    type: TransformationTypeKey;
-  };
-  /** Search parameters */
-  searchParams: { [key: string]: string | string[] | undefined };
 }

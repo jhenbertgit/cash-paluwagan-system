@@ -22,15 +22,17 @@ export async function POST(request: Request) {
         const checkoutSessionId = data?.attributes?.data?.id;
 
         const { metadata, payment_intent } = data?.attributes?.data?.attributes;
-        const amount = payment_intent?.attributes?.amount;
 
-        console.log("Checkout Session ID: ", checkoutSessionId);
+        const { status, amount } = payment_intent?.attributes;
 
         // Create transaction record
-        const transaction = {
+        const transaction: CreateTransactionParams = {
           checkoutSessionId: checkoutSessionId,
-          amount: amount ? amount / 100 : 0, // Convert from cents
+          amount: amount ? amount / 100 : 0,
           memberId: metadata?.memberId,
+          status: status === "succeeded" ? "completed" : "pending",
+          paymentMethod: "",
+          error: "",
           createdAt: new Date(),
         };
 

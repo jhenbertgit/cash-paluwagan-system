@@ -1,5 +1,6 @@
 "use server";
 
+/*eslint-disable @typescript-eslint/no-explicit-any */
 import User from "../database/models/user.model";
 
 import { revalidatePath } from "next/cache";
@@ -13,7 +14,7 @@ import { connectToDB } from "../database/mongoose";
  * @returns {Promise<Object>} Newly created user object
  * @throws {Error} When database connection or user creation fails
  */
-export async function createUser(user: CreateUserParams) {
+export async function createUser(user: CreateUserParams): Promise<any> {
   try {
     await connectToDB();
 
@@ -32,7 +33,7 @@ export async function createUser(user: CreateUserParams) {
  * @returns {Promise<Object>} User object if found
  * @throws {Error} When user is not found or database connection fails
  */
-export async function getUserById(userId: string) {
+export async function getUserById(userId: string): Promise<any> {
   try {
     await connectToDB();
 
@@ -54,7 +55,10 @@ export async function getUserById(userId: string) {
  * @returns {Promise<Object>} Updated user object
  * @throws {Error} When update fails or user is not found
  */
-export async function updateUser(clerkId: string, user: UpdateUserParams) {
+export async function updateUser(
+  clerkId: string,
+  user: UpdateUserParams
+): Promise<any> {
   try {
     await connectToDB();
 
@@ -77,7 +81,7 @@ export async function updateUser(clerkId: string, user: UpdateUserParams) {
  * @returns {Promise<Object|null>} Deleted user object or null
  * @throws {Error} When user is not found or deletion fails
  */
-export async function deleteUser(clerkId: string) {
+export async function deleteUser(clerkId: string): Promise<any | null> {
   try {
     await connectToDB();
 
@@ -99,27 +103,75 @@ export async function deleteUser(clerkId: string) {
 }
 
 /**
- * Updates user's credit balance
- * @async
- * @param {string} userId - Database user ID
- * @param {number} creditFee - Amount to modify credits (positive or negative)
- * @returns {Promise<Object>} Updated user object with new credit balance
- * @throws {Error} When credit update fails or user is not found
+ * Get total registered users and their statistics
+ * @returns {Promise<object>} User statistics
  */
-export async function updateCredits(userId: string, creditFee: number) {
+export async function getUserStats(): Promise<any> {
   try {
     await connectToDB();
 
-    const updatedUserCredits = await User.findOneAndUpdate(
-      { _id: userId },
-      { $inc: { creditBalance: creditFee } },
-      { new: true }
+    // Get basic user stats
+    const stats = await User.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalUsers: { $sum: 1 },
+          // Get newest and oldest user by registration date
+          newestUser: { $max: "$createdAt" },
+          oldestUser: { $min: "$createdAt" },
+          // Optional: Count users by status or other criteria
+          activeUsers: {
+            $sum: {
+              $cond: [{ $gt: ["$creditBalance", 0] }, 1, 0],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalUsers: 1,
+          newestUser: 1,
+          oldestUser: 1,
+          activeUsers: 1,
+          // Calculate percentage of active users
+          activeUsersPercentage: {
+            $multiply: [
+              {
+                $divide: ["$activeUsers", { $max: ["$totalUsers", 1] }],
+              },
+              100,
+            ],
+          },
+        },
+      },
+    ]);
+
+    return (
+      stats[0] || {
+        totalUsers: 0,
+        newestUser: null,
+        oldestUser: null,
+        activeUsers: 0,
+        activeUsersPercentage: 0,
+      }
     );
-
-    if (!updatedUserCredits) throw new Error("User credits update failed");
-
-    return JSON.parse(JSON.stringify(updatedUserCredits));
   } catch (error) {
-    handleError(error);
+    console.error("Error fetching user stats:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get simple count of total users
+ * @returns {Promise<number>} Total number of users
+ */
+export async function getTotalUsers(): Promise<any> {
+  try {
+    await connectToDB();
+    return await User.countDocuments();
+  } catch (error) {
+    console.error("Error fetching total users:", error);
+    throw error;
   }
 }

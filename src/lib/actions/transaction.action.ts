@@ -1,8 +1,11 @@
 "use server";
 
+/*eslint-disable @typescript-eslint/no-explicit-any */
+import Transaction from "../database/models/transaction.model";
+
 import { redirect } from "next/navigation";
 import { connectToDB } from "../database/mongoose";
-import Transaction from "../database/models/transaction.model";
+import { PipelineStage, Types } from "mongoose";
 
 /**
  * Processes a payment checkout through PayMongo payment gateway
@@ -103,5 +106,321 @@ export async function createTransaction(transaction: CreateTransactionParams) {
     return JSON.parse(JSON.stringify(newTransaction));
   } catch (error) {
     console.log(error);
+  }
+}
+
+/**
+ * Retrieves all transactions from the database
+ * @turns {Promise<object[]>} Array of transaction objects
+ * @throws {Error} When database connection or query fails
+ */
+export async function getTransactions() {
+  try {
+    await connectToDB();
+    // Get all transactions, sorted by creation date (newest first)
+    const transactions = await Transaction.find({})
+      .populate("member", "firstName lastName email") // Populate member details
+      .sort({ createdAt: -1 });
+    return JSON.parse(JSON.stringify(transactions));
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    throw error;
+  }
+}
+
+/**
+ * Retrieves transactions for a specific member
+ * @param {string} memberId - The member's ID
+ * @returns {Promise<object[]>} Array of member's transactions
+ */
+export async function getMemberTransactions(memberId: string): Promise<any> {
+  try {
+    await connectToDB();
+
+    // Convert string memberId to ObjectId
+    const memberObjectId = new Types.ObjectId(memberId);
+
+    const transactions = await Transaction.find({ member: memberObjectId })
+      .populate("member", "firstName lastName email")
+      .sort({ createdAt: -1 });
+
+    return JSON.parse(JSON.stringify(transactions));
+  } catch (error) {
+    console.error("Error fetching member transactions:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get transaction statistics
+ * @returns {Promise<object>} Transaction statistics
+ */
+export async function getTransactionStats(): Promise<any> {
+  try {
+    await connectToDB();
+    const stats = await Transaction.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+          count: { $sum: 1 },
+          avgAmount: { $avg: "$amount" },
+        },
+      },
+    ]);
+    return stats[0] || { totalAmount: 0, count: 0, avgAmount: 0 };
+  } catch (error) {
+    console.error("Error fetching transaction stats:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get transaction statistics per member
+ * @param {string} memberId - Optional member ID to filter stats for specific member
+ * @returns {Promise<object>} Transaction statistics
+ */
+export async function getMemberTransactionStats(
+  memberId?: string
+): Promise<any> {
+  try {
+    await connectToDB();
+
+    const memberObjectId = memberId ? new Types.ObjectId(memberId) : undefined;
+
+    // Explicitly type the pipeline array
+    const pipeline: PipelineStage[] = [
+      ...(memberObjectId
+        ? [{ $match: { member: memberObjectId } } as PipelineStage]
+        : []),
+      {
+        $group: {
+          _id: "$member",
+          totalAmount: { $sum: "$amount" },
+          transactionCount: { $sum: 1 },
+          averageAmount: { $avg: "$amount" },
+          lastTransaction: { $max: "$createdAt" },
+          // Count transactions by status
+          completedTransactions: {
+            $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
+          },
+          failedTransactions: {
+            $sum: { $cond: [{ $eq: ["$status", "failed"] }, 1, 0] },
+          },
+          pendingTransactions: {
+            $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] },
+          },
+        },
+      } as PipelineStage,
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "memberDetails",
+        },
+      } as PipelineStage,
+      {
+        $unwind: "$memberDetails",
+      } as PipelineStage,
+      {
+        $project: {
+          memberId: "$_id",
+          memberName: {
+            $concat: [
+              "$memberDetails.firstName",
+              " ",
+              "$memberDetails.lastName",
+            ],
+          },
+          email: "$memberDetails.email",
+          totalAmount: { $round: ["$totalAmount", 2] },
+          transactionCount: 1,
+          averageAmount: { $round: ["$averageAmount", 2] },
+          lastTransaction: 1,
+          completedTransactions: 1,
+          failedTransactions: 1,
+          pendingTransactions: 1,
+          successRate: {
+            $multiply: [
+              {
+                $divide: [
+                  "$completedTransactions",
+                  { $max: ["$transactionCount", 1] },
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      } as PipelineStage,
+      {
+        $sort: { totalAmount: -1 },
+      } as PipelineStage,
+    ];
+
+    const stats = await Transaction.aggregate(pipeline);
+    return memberId ? stats[0] || null : stats;
+  } catch (error) {
+    console.error("Error fetching member transaction stats:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get monthly transaction statistics for a member
+ * @param {string} memberId - Member ID
+ * @returns {Promise<object[]>} Monthly transaction statistics
+ */
+export async function getMemberMonthlyStats(memberId: string): Promise<any> {
+  try {
+    await connectToDB();
+
+    // Convert string memberId to ObjectId
+    const memberObjectId = new Types.ObjectId(memberId);
+
+    const monthlyStats = await Transaction.aggregate([
+      // Match transactions for specific member using ObjectId
+      {
+        $match: {
+          member: memberObjectId,
+        },
+      },
+
+      // Group by year and month
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          totalAmount: { $sum: "$amount" },
+          transactionCount: { $sum: 1 },
+          completedAmount: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0],
+            },
+          },
+          completedCount: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "completed"] }, 1, 0],
+            },
+          },
+        },
+      },
+
+      // Format the output
+      {
+        $project: {
+          _id: 0,
+          year: "$_id.year",
+          month: "$_id.month",
+          totalAmount: { $round: ["$totalAmount", 2] },
+          transactionCount: 1,
+          completedAmount: { $round: ["$completedAmount", 2] },
+          completedCount: 1,
+          successRate: {
+            $multiply: [
+              {
+                $divide: [
+                  "$completedCount",
+                  { $max: ["$transactionCount", 1] },
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      },
+
+      // Sort by year and month
+      {
+        $sort: {
+          year: -1,
+          month: -1,
+        },
+      },
+    ]);
+
+    return monthlyStats;
+  } catch (error) {
+    console.error("Error fetching member monthly stats:", error);
+    throw error;
+  }
+}
+
+/**
+ * Get transaction summary for dashboard
+ * @returns {Promise<object>} Transaction summary statistics
+ */
+export async function getTransactionSummary(): Promise<any> {
+  try {
+    await connectToDB();
+
+    const summary = await Transaction.aggregate([
+      // Group all transactions
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$amount" },
+          totalTransactions: { $sum: 1 },
+          completedAmount: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0],
+            },
+          },
+          completedCount: {
+            $sum: {
+              $cond: [{ $eq: ["$status", "completed"] }, 1, 0],
+            },
+          },
+          averageAmount: { $avg: "$amount" },
+          // Get min and max amounts
+          minAmount: { $min: "$amount" },
+          maxAmount: { $max: "$amount" },
+        },
+      },
+
+      // Format the output
+      {
+        $project: {
+          _id: 0,
+          totalAmount: { $round: ["$totalAmount", 2] },
+          totalTransactions: 1,
+          completedAmount: { $round: ["$completedAmount", 2] },
+          completedCount: 1,
+          averageAmount: { $round: ["$averageAmount", 2] },
+          minAmount: { $round: ["$minAmount", 2] },
+          maxAmount: { $round: ["$maxAmount", 2] },
+          successRate: {
+            $multiply: [
+              {
+                $divide: [
+                  "$completedCount",
+                  { $max: ["$totalTransactions", 1] },
+                ],
+              },
+              100,
+            ],
+          },
+        },
+      },
+    ]);
+
+    return (
+      summary[0] || {
+        totalAmount: 0,
+        totalTransactions: 0,
+        completedAmount: 0,
+        completedCount: 0,
+        averageAmount: 0,
+        minAmount: 0,
+        maxAmount: 0,
+        successRate: 0,
+      }
+    );
+  } catch (error) {
+    console.error("Error fetching transaction summary:", error);
+    throw error;
   }
 }
