@@ -1,6 +1,8 @@
 export type PaymentStatus = "succeeded" | "pending" | "failed";
 
 export interface PaymentIntent {
+  id: string;
+  type: string;
   attributes: {
     status: PaymentStatus;
     amount: number;
@@ -10,13 +12,13 @@ export interface PaymentIntent {
 export interface WebhookEvent {
   data: {
     id: string;
+    type: string;
     attributes: {
-      type: string;
+      payment_intent: PaymentIntent;
+      payment_method_used: string;
       metadata: {
         memberId: string;
       };
-      payment_intent: PaymentIntent;
-      payment_method_used: string;
     };
   };
 }

@@ -35,14 +35,10 @@ const createResponse = (success: boolean, message: string, data?: unknown) => {
 async function handlePaymentPaid(data: WebhookEvent["data"]) {
   const {
     id: checkoutSessionId,
-    attributes: { metadata, payment_intent, payment_method_used },
+    attributes: { payment_intent, payment_method_used, metadata },
   } = data;
 
   const { status, amount } = payment_intent?.attributes ?? {};
-
-  console.log("Data: ", data);
-
-  console.log("Metadata", metadata);
 
   const transaction: CreateTransactionParams = {
     checkoutSessionId,

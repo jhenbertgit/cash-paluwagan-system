@@ -14,6 +14,7 @@ const TransactionSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
     required: true,
+    index: true,
   },
   status: {
     type: String,
@@ -43,6 +44,15 @@ TransactionSchema.pre("save", function (next) {
   this.updatedAt = new Date();
   next();
 });
+
+// Add middleware to handle cascade delete
+TransactionSchema.pre(
+  "deleteOne",
+  { document: true, query: false },
+  async function () {
+    await this.model("Transaction").deleteMany({ member: this._id });
+  }
+);
 
 const Transaction =
   models.Transaction || model("Transaction", TransactionSchema);
