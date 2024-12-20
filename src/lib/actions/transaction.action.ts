@@ -188,7 +188,6 @@ export async function getMemberTransactionStats(
 
     const memberObjectId = memberId ? new Types.ObjectId(memberId) : undefined;
 
-    // Explicitly type the pipeline array
     const pipeline: PipelineStage[] = [
       ...(memberObjectId
         ? [{ $match: { member: memberObjectId } } as PipelineStage]
@@ -200,7 +199,6 @@ export async function getMemberTransactionStats(
           transactionCount: { $sum: 1 },
           averageAmount: { $avg: "$amount" },
           lastTransaction: { $max: "$createdAt" },
-          // Count transactions by status
           completedTransactions: {
             $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] },
           },
@@ -260,7 +258,27 @@ export async function getMemberTransactionStats(
     ];
 
     const stats = await Transaction.aggregate(pipeline);
-    return memberId ? stats[0] || null : stats;
+
+    // Default values object
+    const defaultStats = {
+      memberId: memberObjectId || null,
+      memberName: "",
+      email: "",
+      totalAmount: 0,
+      transactionCount: 0,
+      averageAmount: 0,
+      lastTransaction: null,
+      completedTransactions: 0,
+      failedTransactions: 0,
+      pendingTransactions: 0,
+      successRate: 0,
+    };
+
+    return memberId
+      ? stats[0] || defaultStats
+      : stats.length
+      ? stats
+      : [defaultStats];
   } catch (error) {
     console.error("Error fetching member transaction stats:", error);
     throw error;
@@ -375,29 +393,28 @@ export async function getTransactionSummary(): Promise<any> {
             },
           },
           averageAmount: { $avg: "$amount" },
-          // Get min and max amounts
           minAmount: { $min: "$amount" },
           maxAmount: { $max: "$amount" },
         },
       },
-
-      // Format the output
       {
         $project: {
           _id: 0,
-          totalAmount: { $round: ["$totalAmount", 2] },
-          totalTransactions: 1,
-          completedAmount: { $round: ["$completedAmount", 2] },
-          completedCount: 1,
-          averageAmount: { $round: ["$averageAmount", 2] },
-          minAmount: { $round: ["$minAmount", 2] },
-          maxAmount: { $round: ["$maxAmount", 2] },
+          totalAmount: { $round: [{ $ifNull: ["$totalAmount", 0] }, 2] },
+          totalTransactions: { $ifNull: ["$totalTransactions", 0] },
+          completedAmount: {
+            $round: [{ $ifNull: ["$completedAmount", 0] }, 2],
+          },
+          completedCount: { $ifNull: ["$completedCount", 0] },
+          averageAmount: { $round: [{ $ifNull: ["$averageAmount", 0] }, 2] },
+          minAmount: { $round: [{ $ifNull: ["$minAmount", 0] }, 2] },
+          maxAmount: { $round: [{ $ifNull: ["$maxAmount", 0] }, 2] },
           successRate: {
             $multiply: [
               {
                 $divide: [
-                  "$completedCount",
-                  { $max: ["$totalTransactions", 1] },
+                  { $ifNull: ["$completedCount", 0] },
+                  { $max: [{ $ifNull: ["$totalTransactions", 1] }, 1] },
                 ],
               },
               100,
@@ -407,6 +424,7 @@ export async function getTransactionSummary(): Promise<any> {
       },
     ]);
 
+    // Provide default values if no data exists
     return (
       summary[0] || {
         totalAmount: 0,

@@ -22,6 +22,8 @@ const Dashboard = async () => {
 
   const stat = await getMemberTransactionStats(user._id);
 
+  console.log("Stat: ", stat);
+
   return (
     <>
       <Header title="Dashboard" />
