@@ -8,18 +8,75 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // ERROR HANDLER
-export const handleError = (error: unknown) => {
+type ErrorType =
+  | "Validation"
+  | "Authentication"
+  | "NotFound"
+  | "Database"
+  | "Network"
+  | "Unknown";
+
+interface CustomError {
+  type: ErrorType;
+  message: string;
+  code?: number;
+}
+
+export const handleError = (error: unknown): never => {
+  let customError: CustomError = {
+    type: "Unknown",
+    message: "An unexpected error occurred",
+    code: 500,
+  };
+
   if (error instanceof Error) {
-    // This is a native JavaScript error (e.g., TypeError, RangeError)
-    console.error(error.message);
-    throw new Error(`Error: ${error.message}`);
+    if (error.message.includes("User ID is required")) {
+      customError = {
+        type: "Validation",
+        message: error.message,
+        code: 400,
+      };
+    } else if (error.message.includes("No user found with ID")) {
+      customError = {
+        type: "NotFound",
+        message: error.message,
+        code: 404,
+      };
+    } else if (error.name === "MongoServerError") {
+      customError = {
+        type: "Database",
+        message: error.message.includes("duplicate key")
+          ? "Record already exists"
+          : "Database error occurred",
+        code: error.message.includes("duplicate key") ? 409 : 500,
+      };
+    } else if (error.name === "AuthenticationError") {
+      customError = {
+        type: "Authentication",
+        message: "Authentication failed",
+        code: 401,
+      };
+    } else {
+      customError = {
+        type: "Unknown",
+        message: error.message,
+        code: 500,
+      };
+    }
   } else if (typeof error === "string") {
-    // This is a string error message
-    console.error(error);
-    throw new Error(`Error: ${error}`);
-  } else {
-    // This is an unknown type of error
-    console.error(error);
-    throw new Error(`Unknown error: ${JSON.stringify(error)}`);
+    customError = {
+      type: "Unknown",
+      message: error,
+      code: 500,
+    };
   }
+
+  // Log error for debugging
+  console.error(`[${customError.type} Error]`, {
+    message: customError.message,
+    code: customError.code,
+    originalError: error,
+  });
+
+  throw new Error(`[${customError.type}] ${customError.message}`);
 };

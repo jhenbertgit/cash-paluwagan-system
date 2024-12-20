@@ -46,11 +46,16 @@ export async function createUser(user: CreateUserParams) {
  */
 export async function getUserById(userId: string) {
   try {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
     await connectToDB();
-    const user = await User.findOne({ clerkId: userId });
+
+    const user = await User.findOne({ clerkId: userId }).select("-__v");
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error(`No user found with ID: ${userId}`);
     }
 
     return serializeUser(user);
@@ -148,8 +153,8 @@ export async function getUserStats(): Promise<UserStats> {
     const [stats] = await User.aggregate(aggregationPipeline);
     return stats || DEFAULT_STATS;
   } catch (error) {
-    console.error("Error fetching user stats:", error);
-    throw error;
+    handleError(error);
+    return DEFAULT_STATS;
   }
 }
 
@@ -161,7 +166,7 @@ export async function getTotalUsers(): Promise<number> {
     await connectToDB();
     return (await User.countDocuments()) || 0;
   } catch (error) {
-    console.error("Error fetching total users:", error);
+    handleError(error);
     return 0;
   }
 }
