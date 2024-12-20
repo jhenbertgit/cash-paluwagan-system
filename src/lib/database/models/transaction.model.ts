@@ -1,4 +1,9 @@
-import { Schema, model, models } from "mongoose";
+/*eslint-disable @typescript-eslint/no-explicit-any */
+import { Schema, model, models, Model } from "mongoose";
+
+interface TransactionModel extends Model<any> {
+  deleteUserTransactions(userId: string): Promise<void>;
+}
 
 const TransactionSchema = new Schema({
   checkoutSessionId: {
@@ -45,16 +50,12 @@ TransactionSchema.pre("save", function (next) {
   next();
 });
 
-// Add middleware to handle cascade delete
-TransactionSchema.pre(
-  "deleteOne",
-  { document: true, query: false },
-  async function () {
-    await this.model("Transaction").deleteMany({ member: this._id });
-  }
-);
+// Add middleware to handle user deletion
+TransactionSchema.statics.deleteUserTransactions = async function (userId) {
+  await this.deleteMany({ member: userId });
+};
 
-const Transaction =
-  models.Transaction || model("Transaction", TransactionSchema);
+const Transaction = (models.Transaction ||
+  model("Transaction", TransactionSchema)) as TransactionModel;
 
 export default Transaction;

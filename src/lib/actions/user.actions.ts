@@ -4,6 +4,7 @@ import User from "../database/models/user.model";
 import { revalidatePath } from "next/cache";
 import { handleError } from "../utils";
 import { connectToDB } from "../database/mongoose";
+import Transaction from "../database/models/transaction.model";
 
 import type { Document } from "mongoose";
 
@@ -91,12 +92,16 @@ export async function updateUser(clerkId: string, userData: UpdateUserParams) {
 export async function deleteUser(clerkId: string) {
   try {
     await connectToDB();
+    
     const userToDelete = await User.findOne({ clerkId });
-
     if (!userToDelete) {
       throw new Error("User not found");
     }
 
+    // Delete user's transactions first
+    await Transaction.deleteUserTransactions(userToDelete._id);
+    
+    // Then delete the user
     const deletedUser = await User.findByIdAndDelete(userToDelete._id);
     revalidatePath("/");
 
