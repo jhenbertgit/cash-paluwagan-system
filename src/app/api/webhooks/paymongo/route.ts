@@ -1,66 +1,83 @@
 import { NextResponse } from "next/server";
 import { createTransaction } from "@/lib/actions/transaction.action";
 
+import type { WebhookEvent, PaymentStatus } from "./types";
+
+const WEBHOOK_EVENTS = {
+  PAYMENT_PAID: "checkout_session.payment.paid",
+} as const;
+
+/**
+ * Maps PayMongo payment status to our transaction status
+ */
+const mapPaymentStatus = (status: PaymentStatus) =>
+  status === "succeeded" ? "completed" : "pending";
+
+/**
+ * Creates standardized API response
+ */
+const createResponse = (success: boolean, message: string, data?: unknown) => {
+  const response = {
+    success,
+    message,
+  };
+
+  if (data) {
+    return NextResponse.json({ ...response, data });
+  }
+
+  return NextResponse.json(response);
+};
+
+/**
+ * Handles payment success event
+ */
+async function handlePaymentPaid(data: WebhookEvent["data"]) {
+  const {
+    id: checkoutSessionId,
+    attributes: { metadata, payment_intent, payment_method_used },
+  } = data;
+
+  const { status, amount } = payment_intent?.attributes ?? {};
+
+  const transaction: CreateTransactionParams = {
+    checkoutSessionId,
+    amount: amount ? amount / 100 : 0,
+    memberId: metadata?.memberId,
+    status: mapPaymentStatus(status) as "completed" | "pending" | "failed",
+    paymentMethod: payment_method_used,
+    createdAt: new Date(),
+  };
+
+  const newTransaction = await createTransaction(transaction);
+
+  return createResponse(true, "Payment processed successfully", {
+    transaction: newTransaction,
+  });
+}
+
 /**
  * Handle PayMongo webhook events
  * @see https://developers.paymongo.com/docs/webhook-events
  */
 export async function POST(request: Request) {
   try {
-    // Get raw body
     const rawBody = await request.text();
-
-    // Parse the webhook payload
     const { data } = JSON.parse(rawBody);
-    const type = data?.attributes?.type;
+    const eventType = data?.attributes?.type;
 
-    // Handle checkout session events
-    switch (type) {
-      case "checkout_session.payment.paid": {
-        console.log("Data Attributes: ", data?.attributes?.data?.attributes);
-
-        const checkoutSessionId = data?.attributes?.data?.id;
-
-        const { metadata, payment_intent, payment_method_used } =
-          data?.attributes?.data?.attributes;
-
-        const { status, amount } = payment_intent?.attributes;
-
-        // Create transaction record
-        const transaction: CreateTransactionParams = {
-          checkoutSessionId: checkoutSessionId,
-          amount: amount ? amount / 100 : 0,
-          memberId: metadata?.memberId,
-          status: status === "succeeded" ? "completed" : "pending",
-          paymentMethod: payment_method_used,
-          createdAt: new Date(),
-        };
-
-        // Record transaction and update user credits
-        const newTransaction = await createTransaction(transaction);
-
-        return NextResponse.json({
-          success: true,
-          message: "Payment processed successfully",
-          transaction: newTransaction,
-        });
-      }
+    switch (eventType) {
+      case WEBHOOK_EVENTS.PAYMENT_PAID:
+        return handlePaymentPaid(data);
 
       default:
-        return NextResponse.json({
-          success: false,
-          message: `Unhandled event type: ${type}`,
-        });
+        return createResponse(false, `Unhandled event type: ${eventType}`);
     }
   } catch (error) {
     console.error("Webhook Error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Webhook processing failed",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+
+    return createResponse(false, "Webhook processing failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
   }
 }

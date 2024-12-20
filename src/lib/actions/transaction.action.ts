@@ -2,6 +2,7 @@
 
 /*eslint-disable @typescript-eslint/no-explicit-any */
 import Transaction from "../database/models/transaction.model";
+import User from "../database/models/user.model";
 
 import { redirect } from "next/navigation";
 import { connectToDB } from "../database/mongoose";
@@ -101,8 +102,6 @@ export async function createTransaction(transaction: CreateTransactionParams) {
       member: transaction.memberId,
     });
 
-    console.log("New Transaction: ", newTransaction);
-
     return JSON.parse(JSON.stringify(newTransaction));
   } catch (error) {
     console.log(error);
@@ -188,6 +187,27 @@ export async function getMemberTransactionStats(
 
     const memberObjectId = memberId ? new Types.ObjectId(memberId) : undefined;
 
+    // Check if user exists first
+    if (memberId) {
+      const userExists = await User.findById(memberObjectId);
+      if (!userExists) {
+        const defaultStats = {
+          memberId: memberObjectId || null,
+          memberName: "Unknown User",
+          email: "N/A",
+          totalAmount: 0,
+          transactionCount: 0,
+          averageAmount: 0,
+          lastTransaction: null,
+          completedTransactions: 0,
+          failedTransactions: 0,
+          pendingTransactions: 0,
+          successRate: 0,
+        };
+        return memberId ? defaultStats : [defaultStats];
+      }
+    }
+
     const pipeline: PipelineStage[] = [
       ...(memberObjectId
         ? [{ $match: { member: memberObjectId } } as PipelineStage]
@@ -259,11 +279,10 @@ export async function getMemberTransactionStats(
 
     const stats = await Transaction.aggregate(pipeline);
 
-    // Default values object
     const defaultStats = {
       memberId: memberObjectId || null,
-      memberName: "",
-      email: "",
+      memberName: "Unknown User",
+      email: "N/A",
       totalAmount: 0,
       transactionCount: 0,
       averageAmount: 0,

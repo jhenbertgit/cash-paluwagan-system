@@ -4,6 +4,7 @@ import Header from "@/components/shared/Header";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getTotalUsers, getUserById } from "@/lib/actions/user.actions";
+
 import {
   getMemberTransactionStats,
   getTransactionSummary,
@@ -21,8 +22,6 @@ const Dashboard = async () => {
   const totalMembers = await getTotalUsers();
 
   const stat = await getMemberTransactionStats(user._id);
-
-  console.log("Stat: ", stat);
 
   return (
     <>
