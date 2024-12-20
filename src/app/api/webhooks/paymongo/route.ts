@@ -21,7 +21,8 @@ export async function POST(request: Request) {
 
         const checkoutSessionId = data?.attributes?.data?.id;
 
-        const { metadata, payment_intent } = data?.attributes?.data?.attributes;
+        const { metadata, payment_intent, payment_method_used } =
+          data?.attributes?.data?.attributes;
 
         const { status, amount } = payment_intent?.attributes;
 
@@ -31,8 +32,7 @@ export async function POST(request: Request) {
           amount: amount ? amount / 100 : 0,
           memberId: metadata?.memberId,
           status: status === "succeeded" ? "completed" : "pending",
-          paymentMethod: "",
-          error: "",
+          paymentMethod: payment_method_used,
           createdAt: new Date(),
         };
 
