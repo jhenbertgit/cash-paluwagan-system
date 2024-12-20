@@ -72,7 +72,7 @@ export async function POST(request: Request) {
 
     switch (eventType) {
       case WEBHOOK_EVENTS.PAYMENT_PAID:
-        return handlePaymentPaid(data);
+        return handlePaymentPaid(data?.attributes?.data);
 
       default:
         return createResponse(false, `Unhandled event type: ${eventType}`);
