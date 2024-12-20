@@ -40,6 +40,10 @@ async function handlePaymentPaid(data: WebhookEvent["data"]) {
 
   const { status, amount } = payment_intent?.attributes ?? {};
 
+  console.log("Data: ", data);
+
+  console.log("Metadata", metadata);
+
   const transaction: CreateTransactionParams = {
     checkoutSessionId,
     amount: amount ? amount / 100 : 0,
