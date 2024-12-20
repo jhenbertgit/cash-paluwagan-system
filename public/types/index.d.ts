@@ -57,7 +57,7 @@ interface CheckoutTransactionParams {
  */
 interface CreateTransactionParams {
   /** Transaction identifier */
-  transactionId: string;
+  checkoutSessionId: string;
   /** Transaction amount */
   amount: number;
   /** User ID of the member */
