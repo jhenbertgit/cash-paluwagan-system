@@ -34,7 +34,6 @@ const Pay = async () => {
       />
 
       <div className="pay">
-        {/* GCash Card */}
         <div className="pay-image">
           <Image
             src="/assets/images/logo-icon.png"

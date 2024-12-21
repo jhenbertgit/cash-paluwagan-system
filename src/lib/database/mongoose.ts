@@ -1,6 +1,6 @@
+/*eslint-disable @typescript-eslint/no-explicit-any */
 import mongoose, { Mongoose } from "mongoose";
 
-/*eslint-disable @typescript-eslint/no-explicit-any */
 const MONGODB_URL = process.env.MONGODB_URL;
 
 interface MongooseConnection {

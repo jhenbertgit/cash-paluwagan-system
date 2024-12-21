@@ -1,8 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-// import qs from "qs";
-
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -30,17 +28,17 @@ export const handleError = (error: unknown): never => {
   };
 
   if (error instanceof Error) {
-    if (error.message.includes("User ID is required")) {
+    if (error.name === "NotFoundError") {
+      customError = {
+        type: "NotFound",
+        message: error.message || "Resource not found",
+        code: 404,
+      };
+    } else if (error.message.includes("User ID is required")) {
       customError = {
         type: "Validation",
         message: error.message,
         code: 400,
-      };
-    } else if (error.message.includes("No user found with ID")) {
-      customError = {
-        type: "NotFound",
-        message: error.message,
-        code: 404,
       };
     } else if (error.name === "MongoServerError") {
       customError = {
