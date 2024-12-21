@@ -1,20 +1,36 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
-import { navLinks } from "@/constants";
 import { usePathname } from "next/navigation";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "../ui/button";
+import { navLinks } from "@/constants";
 
 const MobileNav = () => {
   const pathname = usePathname();
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [prevScrollPos, setPrevScrollPos] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollPos = window.scrollY;
+      setIsScrolled(prevScrollPos > currentScrollPos || currentScrollPos < 10);
+      setPrevScrollPos(currentScrollPos);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [prevScrollPos]);
 
   return (
-    <header className="header">
+    <header
+      className={`header fixed top-0 w-full transition-all duration-300 ${
+        isScrolled ? "bg-white" : "bg-white/80 backdrop-blur-md shadow-sm"
+      }`}
+    >
       <Link href="/" className="flex items-center gap-2 md:py-2">
         <Image
           src="/assets/images/logo-text.svg"
@@ -53,10 +69,10 @@ const MobileNav = () => {
 
                     return (
                       <li
+                        key={link.route}
                         className={`${
                           isActive && "gradient-text"
                         } p-18 flex whitespace-nowrap text-dark-700`}
-                        key={link.route}
                       >
                         <Link
                           className="sidebar-link cursor-pointer"

@@ -6,7 +6,7 @@ const Banner = () => {
     <div className="container mx-auto">
       <div className="flex flex-col lg:flex-row items-center lg:items-center gap-12 lg:gap-20">
         {/* Text content */}
-        <div className="lg:w-1/2 z-10">
+        <div className="lg:w-1/2">
           <h1 className="text-5xl lg:text-7xl font-bold mb-6 text-white  leading-tight">
             100% Transparent{" "}
             <span className="text-dark-600/85">Cash Paluwagan</span>
