@@ -39,7 +39,11 @@ const TableData = ({ data }: Props) => {
             <TableCell className="w-[300px]">
               {mod.default(
                 "en-PH",
-                { dateStyle: "long", timeStyle: "short" },
+                {
+                  dateStyle: "long",
+                  timeStyle: "short",
+                  timeZone: "Asia/Manila",
+                },
                 new Date(item.createdAt)
               )}
             </TableCell>
