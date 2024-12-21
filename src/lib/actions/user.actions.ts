@@ -1,10 +1,12 @@
 "use server";
 
 import User from "../database/models/user.model";
+import Transaction from "../database/models/transaction.model";
+
 import { revalidatePath } from "next/cache";
 import { handleError } from "../utils";
 import { connectToDB } from "../database/mongoose";
-import Transaction from "../database/models/transaction.model";
+import { redirect } from "next/navigation";
 
 import type { Document } from "mongoose";
 
@@ -56,11 +58,12 @@ export async function getUserById(userId: string) {
     const user = await User.findOne({ clerkId: userId }).select("-__v");
 
     if (!user) {
-      throw new Error(`No user found with ID: ${userId}`);
+      redirect("/sign-in");
     }
 
     return serializeUser(user);
   } catch (error) {
+    console.error("getUserById error:", error);
     handleError(error);
   }
 }
@@ -92,7 +95,7 @@ export async function updateUser(clerkId: string, userData: UpdateUserParams) {
 export async function deleteUser(clerkId: string) {
   try {
     await connectToDB();
-    
+
     const userToDelete = await User.findOne({ clerkId });
     if (!userToDelete) {
       throw new Error("User not found");
@@ -100,7 +103,7 @@ export async function deleteUser(clerkId: string) {
 
     // Delete user's transactions first
     await Transaction.deleteUserTransactions(userToDelete._id);
-    
+
     // Then delete the user
     const deletedUser = await User.findByIdAndDelete(userToDelete._id);
     revalidatePath("/");
