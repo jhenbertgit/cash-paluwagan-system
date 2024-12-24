@@ -3,7 +3,8 @@
 /*eslint-disable @typescript-eslint/no-explicit-any */
 import Transaction from "../database/models/transaction.model";
 import User from "../database/models/user.model";
-
+import mongoose from "mongoose";
+import { handleError } from "../utils";
 import { redirect } from "next/navigation";
 import { connectToDB } from "../database/mongoose";
 import { PipelineStage, Types } from "mongoose";
@@ -15,7 +16,7 @@ import { PipelineStage, Types } from "mongoose";
  * @throws {Error} When checkout session creation fails
  * @throws {Error} When checkout URL is missing in PayMongo response
  */
-export async function checkoutPayment({
+export async function processContribution({
   name,
   email,
   userId,
@@ -56,7 +57,7 @@ export async function checkoutPayment({
             },
           ],
           payment_method_types: ["gcash", "grab_pay", "paymaya", "card"],
-          description: "Paluwagan monthly amortization",
+          description: "Paluwagan monthly contribution",
           success_url: `${serverUrl}/dashboard`,
           cancel_url: `${serverUrl}/pay`,
           metadata: {
@@ -179,7 +180,7 @@ export async function getTransactionStats(): Promise<any> {
  * @param {string} memberId - Optional member ID to filter stats for specific member
  * @returns {Promise<object>} Transaction statistics
  */
-export async function getMemberTransactionStats(
+export async function getMemberContributionStats(
   memberId?: string
 ): Promise<any> {
   try {
@@ -309,22 +310,17 @@ export async function getMemberTransactionStats(
  * @param {string} memberId - Member ID
  * @returns {Promise<object[]>} Monthly transaction statistics
  */
-export async function getMemberMonthlyStats(memberId: string): Promise<any> {
+export async function getMemberMonthlyStats(memberId: string) {
   try {
     await connectToDB();
 
-    // Convert string memberId to ObjectId
-    const memberObjectId = new Types.ObjectId(memberId);
-
     const monthlyStats = await Transaction.aggregate([
-      // Match transactions for specific member using ObjectId
       {
         $match: {
-          member: memberObjectId,
+          member: new mongoose.Types.ObjectId(memberId),
+          status: "completed",
         },
       },
-
-      // Group by year and month
       {
         $group: {
           _id: {
@@ -332,57 +328,32 @@ export async function getMemberMonthlyStats(memberId: string): Promise<any> {
             month: { $month: "$createdAt" },
           },
           totalAmount: { $sum: "$amount" },
-          transactionCount: { $sum: 1 },
-          completedAmount: {
-            $sum: {
-              $cond: [{ $eq: ["$status", "completed"] }, "$amount", 0],
-            },
-          },
-          completedCount: {
-            $sum: {
-              $cond: [{ $eq: ["$status", "completed"] }, 1, 0],
-            },
-          },
+          count: { $sum: 1 },
         },
       },
-
-      // Format the output
       {
         $project: {
           _id: 0,
-          year: "$_id.year",
-          month: "$_id.month",
-          totalAmount: { $round: ["$totalAmount", 2] },
-          transactionCount: 1,
-          completedAmount: { $round: ["$completedAmount", 2] },
-          completedCount: 1,
-          successRate: {
-            $multiply: [
-              {
-                $divide: [
-                  "$completedCount",
-                  { $max: ["$transactionCount", 1] },
-                ],
-              },
-              100,
-            ],
+          month: {
+            $dateFromParts: {
+              year: "$_id.year",
+              month: "$_id.month",
+              day: 1,
+            },
           },
+          totalAmount: 1,
+          count: 1,
         },
       },
-
-      // Sort by year and month
       {
-        $sort: {
-          year: -1,
-          month: -1,
-        },
+        $sort: { month: 1 },
       },
     ]);
 
     return monthlyStats;
   } catch (error) {
-    console.error("Error fetching member monthly stats:", error);
-    throw error;
+    handleError(error);
+    return [];
   }
 }
 
@@ -390,7 +361,7 @@ export async function getMemberMonthlyStats(memberId: string): Promise<any> {
  * Get transaction summary for dashboard
  * @returns {Promise<object>} Transaction summary statistics
  */
-export async function getTransactionSummary(): Promise<any> {
+export async function getContributionSummary(): Promise<any> {
   try {
     await connectToDB();
 
@@ -459,5 +430,29 @@ export async function getTransactionSummary(): Promise<any> {
   } catch (error) {
     console.error("Error fetching transaction summary:", error);
     throw error;
+  }
+}
+
+export async function getTransactionsByMember(
+  memberId: string,
+  limit?: number
+): Promise<any> {
+  try {
+    await connectToDB();
+
+    const query = Transaction.find({ member: memberId }).sort({
+      createdAt: -1,
+    });
+
+    if (limit) {
+      query.limit(limit);
+    }
+
+    const transactions = await query.exec();
+    // Properly serialize the MongoDB documents
+    return JSON.parse(JSON.stringify(transactions));
+  } catch (error) {
+    handleError(error);
+    return [];
   }
 }

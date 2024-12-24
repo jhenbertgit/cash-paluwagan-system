@@ -7,12 +7,12 @@ interface Props {
 
 const Header = ({ title, subtitle }: Props) => {
   return (
-    <>
-      <h2 className="h2-bold text-white/85">{title}</h2>
+    <div className="mb-8">
+      <h2 className="h2-bold text-gray-900">{title}</h2>
       {subtitle && (
-        <p className="p-16-regular mt-4 text-white/85">{subtitle}</p>
+        <p className="p-16-semibold mt-2 text-gray-600">{subtitle}</p>
       )}
-    </>
+    </div>
   );
 };
 
