@@ -1,11 +1,18 @@
 import Banner from "@/components/shared/Banner";
-import React from "react";
+import { Metadata } from "next";
 
-const Home = async () => {
+export const metadata: Metadata = {
+  title: "Home | Paluwagan",
+  description: "Welcome to Paluwagan - Modern and transparent cash management system",
+};
+
+const Home = () => {
   return (
-    <>
-      <Banner />
-    </>
+    <div className="bg-pattern min-h-screen">
+      <div className="page-container">
+        <Banner />
+      </div>
+    </div>
   );
 };
 

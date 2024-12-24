@@ -12,100 +12,89 @@ import { navLinks } from "@/constants";
 const MobileNav = () => {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [prevScrollPos, setPrevScrollPos] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollPos = window.scrollY;
-      setIsScrolled(prevScrollPos > currentScrollPos || currentScrollPos < 10);
-      setPrevScrollPos(currentScrollPos);
+      setIsScrolled(window.scrollY > 0);
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [prevScrollPos]);
+  }, []);
 
   return (
-    <header
-      className={`header fixed top-0 w-full transition-all duration-300 ${
-        isScrolled ? "bg-white" : "bg-white/80 backdrop-blur-md shadow-sm"
-      }`}
-    >
-      <Link href="/" className="flex items-center gap-2 md:py-2">
-        <Image
-          src="/assets/images/logo-text.svg"
-          alt="logo"
-          width={180}
-          height={28}
-        />
-      </Link>
+    <nav className={`mobile-nav ${isScrolled ? 'shadow-sm' : ''}`}>
+      <div className="mobile-nav-content">
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/assets/images/logo-text.svg"
+            alt="logo"
+            width={180}
+            height={28}
+            className="object-contain"
+          />
+        </Link>
 
-      <nav className="flex gap-2">
-        <SignedIn>
-          <UserButton afterSwitchSessionUrl="/" />
+        <div className="flex items-center gap-4">
+          <SignedIn>
+            <UserButton afterSwitchSessionUrl="/" />
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="lg:hidden">
+                  <Image
+                    src="/assets/icons/menu.svg"
+                    alt="menu"
+                    width={24}
+                    height={24}
+                    className="cursor-pointer"
+                  />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="sheet-content">
+                <div className="flex flex-col h-full">
+                  <Image
+                    src="/assets/images/logo-text.svg"
+                    alt="logo"
+                    width={152}
+                    height={23}
+                  />
 
-          <Sheet>
-            <SheetTrigger>
-              <Image
-                src="/assets/icons/menu.svg"
-                alt="menu"
-                width={32}
-                height={32}
-                className="cursor-pointer"
-              />
-            </SheetTrigger>
-            <SheetContent className="sheet-content md:w-64">
-              <>
-                <Image
-                  src="/assets/images/logo-text.svg"
-                  alt="logo"
-                  width={152}
-                  height={23}
-                />
-
-                <ul className="header-nav_elements">
-                  {navLinks.map((link) => {
-                    const isActive = link.route === pathname;
-
-                    return (
-                      <li
-                        key={link.route}
-                        className={`${
-                          isActive && "gradient-text"
-                        } p-18 flex whitespace-nowrap text-dark-700`}
-                      >
+                  <nav className="mt-8 flex flex-col gap-2">
+                    {navLinks.map((link) => {
+                      const isActive = link.route === pathname;
+                      return (
                         <Link
-                          className="sidebar-link cursor-pointer"
+                          key={link.route}
                           href={link.route}
+                          className={`sidebar-link ${
+                            isActive ? "sidebar-link-active" : ""
+                          }`}
                         >
                           <Image
                             src={link.icon}
-                            alt="logo"
+                            alt={link.label}
                             width={24}
                             height={24}
+                            className={isActive ? "brightness-0" : ""}
                           />
-                          {link.label}
+                          <span className="p-16-semibold">{link.label}</span>
                         </Link>
-                      </li>
-                    );
-                  })}
+                      );
+                    })}
+                  </nav>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </SignedIn>
 
-                  <li className="flex-center cursor-pointer gap-2 p-4">
-                    <UserButton afterSwitchSessionUrl="/" showName />
-                  </li>
-                </ul>
-              </>
-            </SheetContent>
-          </Sheet>
-        </SignedIn>
-
-        <SignedOut>
-          <Button asChild className="button bg-purple-gradient bg-cover">
-            <Link href="/sign-in">Member&apos;s Login</Link>
-          </Button>
-        </SignedOut>
-      </nav>
-    </header>
+          <SignedOut>
+            <Button asChild className="btn-primary">
+              <Link href="/sign-in">Login</Link>
+            </Button>
+          </SignedOut>
+        </div>
+      </div>
+    </nav>
   );
 };
 
