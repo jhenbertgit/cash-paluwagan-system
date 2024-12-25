@@ -2,7 +2,6 @@
 
 import User from "../database/models/user.model";
 import Transaction from "../database/models/transaction.model";
-
 import { revalidatePath } from "next/cache";
 import { handleError } from "../utils";
 import { connectToDB } from "../database/mongoose";
@@ -47,7 +46,9 @@ export async function createUser(user: CreateUserParams) {
 /**
  * Retrieves a user by their Clerk ID
  */
-export async function getUserById(userId: string) {
+export async function getUserById(
+  userId: string
+): Promise<UserDocument | null> {
   try {
     if (!userId) {
       throw new Error("User ID is required");
@@ -59,12 +60,14 @@ export async function getUserById(userId: string) {
 
     if (!user) {
       redirect("/sign-in");
+      return null; // Ensure function returns a value
     }
 
     return serializeUser(user);
   } catch (error) {
     console.error("getUserById error:", error);
     handleError(error);
+    return null; // Ensure function returns a value in case of error
   }
 }
 

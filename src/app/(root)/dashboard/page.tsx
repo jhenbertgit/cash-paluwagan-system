@@ -30,6 +30,8 @@ const Dashboard = async () => {
     const user = await getUserById(userId);
     if (!user) redirect("/sign-in");
 
+    const userID = user._id as string;
+
     const summary = (await getContributionSummary()) || {
       totalAmount: 0,
       totalTransactions: 0,
@@ -38,7 +40,7 @@ const Dashboard = async () => {
     const totalMembers = (await getTotalUsers()) || 0;
 
     // Ensure rawStat is treated as a single object
-    const rawStat = (await getMemberContributionStats(user._id)) || {
+    const rawStat = (await getMemberContributionStats(userID)) || {
       transactionCount: 0,
       lastTransaction: new Date(),
       completedTransactions: 0,
@@ -76,7 +78,7 @@ const Dashboard = async () => {
         : rawStat.successRate || 0,
     };
 
-    const monthlyStats = (await getMemberMonthlyStats(user._id)) || [];
+    const monthlyStats = (await getMemberMonthlyStats(userID)) || [];
     const formattedMonthlyStats = monthlyStats
       .map((stat: any) => {
         const date = new Date(stat.month);

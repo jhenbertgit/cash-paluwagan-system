@@ -25,6 +25,7 @@ const WEBHOOK_HANDLERS: Record<string, WebhookHandler> = {
       firstName: first_name!,
       lastName: last_name!,
       photo: photo ?? "",
+      createdAt: new Date(), // Add createdAt field with current date
     };
 
     const newUser = await createUser(user);
@@ -69,7 +70,7 @@ const WEBHOOK_HANDLERS: Record<string, WebhookHandler> = {
     const { id } = evt.data;
     const deletedUser = await deleteUser(id!);
     return NextResponse.json({
-      message: "User deleted successfully",
+      message: "User deleted successfully from MongoDB",
       user: deletedUser,
     });
   },

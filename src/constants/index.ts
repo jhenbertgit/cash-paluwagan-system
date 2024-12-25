@@ -10,9 +10,4 @@ export const navLinks = [
     route: "/profile",
     icon: "/assets/icons/user.svg",
   },
-  {
-    label: "Pay",
-    route: "/pay",
-    icon: "/assets/icons/peso.svg",
-  },
 ];

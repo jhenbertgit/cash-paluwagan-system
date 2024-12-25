@@ -2,9 +2,7 @@
 
 import User from "../database/models/user.model";
 import mongoose, { PipelineStage, Types } from "mongoose";
-import Transaction, {
-  ITransaction,
-} from "../database/models/transaction.model";
+import Transaction from "../database/models/transaction.model";
 import { handleError } from "../utils";
 import { connectToDB } from "../database/mongoose";
 
@@ -32,8 +30,6 @@ export async function createTransaction(
   }
 }
 
-
-
 /**
  * Retrieves all transactions from the database
  * @returns {Promise<PopulatedTransaction[]>} Array of transaction objects
@@ -60,7 +56,7 @@ export async function getTransactions(): Promise<PopulatedTransaction[]> {
  */
 export async function getMemberTransactions(
   memberId: string
-): Promise<ITransaction[]> {
+): Promise<PopulatedTransaction[]> {
   try {
     await connectToDB();
 
@@ -72,7 +68,7 @@ export async function getMemberTransactions(
       .sort({ createdAt: -1 });
 
     // Properly serialize the MongoDB documents
-    return JSON.parse(JSON.stringify(transactions)) as ITransaction[];
+    return JSON.parse(JSON.stringify(transactions)) as PopulatedTransaction[];
   } catch (error) {
     console.error("Error fetching member transactions:", error);
     throw error;
@@ -373,7 +369,7 @@ export async function getContributionSummary(): Promise<TransactionSummary> {
 export async function getTransactionsByMember(
   memberId: string,
   limit?: number
-): Promise<ITransaction[]> {
+): Promise<PopulatedTransaction[]> {
   try {
     await connectToDB();
 
@@ -387,7 +383,7 @@ export async function getTransactionsByMember(
 
     const transactions = await query.exec();
     // Properly serialize the MongoDB documents
-    return JSON.parse(JSON.stringify(transactions)) as ITransaction[];
+    return JSON.parse(JSON.stringify(transactions)) as PopulatedTransaction[];
   } catch (error) {
     handleError(error);
     return [];

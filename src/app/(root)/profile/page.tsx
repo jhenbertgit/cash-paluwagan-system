@@ -6,16 +6,13 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { getMemberContributionStats } from "@/lib/actions/transaction.action";
 
-interface Transaction {
+interface UserDocument {
   _id: string;
-  checkoutSessionId: string;
-  amount: number;
-  member: string;
-  status: "completed" | "pending" | "failed";
-  paymentMethod: "gcash" | "paymaya" | "grab_pay" | "card" | null;
-  error: string | null;
-  createdAt: string;
-  updatedAt: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  createdAt?: Date;
+  // ... other fields
 }
 
 const ProfilePage = async () => {
@@ -23,13 +20,23 @@ const ProfilePage = async () => {
   if (!userId) redirect("/sign-in");
 
   const user = await getUserById(userId);
-  if (!user) redirect("/sign-in");
 
-  const memberStats = await getMemberContributionStats(user._id);
+  if (!user) {
+    redirect("/sign-in");
+    return;
+  }
+
+  const userDocument = user as UserDocument;
+
+  const userID = user._id as string;
+
+  const memberStats = await getMemberContributionStats(userID);
+  const stats = Array.isArray(memberStats) ? memberStats[0] : memberStats;
+
   const transactions = (await getTransactionsByMember(
-    user._id,
+    userID,
     6
-  )) as Transaction[];
+  )) as PopulatedTransaction[];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-PH", {
@@ -68,7 +75,7 @@ const ProfilePage = async () => {
             <Link
               href="/pay"
               className={`button-primary flex items-center gap-2 ${
-                memberStats.pendingTransactions > 0 ? 'animate-pulse' : ''
+                stats.pendingTransactions > 0 ? "animate-pulse" : ""
               }`}
             >
               <span>Make Contribution</span>
@@ -85,21 +92,22 @@ const ProfilePage = async () => {
                 <div className="flex items-center gap-4">
                   <div className="h-16 w-16 rounded-full bg-primary-100 flex-center">
                     <span className="h2-bold text-primary-600">
-                      {user.firstName[0]}
-                      {user.lastName[0]}
+                      {userDocument.firstName[0]}
+                      {userDocument.lastName[0]}
                     </span>
                   </div>
                   <div>
                     <h2 className="h3-bold text-gray-900">
-                      {user.firstName} {user.lastName}
+                      {userDocument.firstName} {userDocument.lastName}
                     </h2>
-                    <p className="text-gray-500">{user.email}</p>
+                    <p className="text-gray-500">{userDocument.email}</p>
                   </div>
                 </div>
-                {memberStats.pendingTransactions > 0 && (
+                {stats.pendingTransactions > 0 && (
                   <div className="px-4 py-2 bg-amber-50 border border-amber-200 rounded-lg">
                     <p className="text-sm text-amber-700 font-medium">
-                      {memberStats.pendingTransactions} pending contribution{memberStats.pendingTransactions > 1 ? 's' : ''}
+                      {stats.pendingTransactions} pending contribution
+                      {stats.pendingTransactions > 1 ? "s" : ""}
                     </p>
                   </div>
                 )}
@@ -109,7 +117,7 @@ const ProfilePage = async () => {
                 <div className="space-y-2">
                   <p className="text-sm text-gray-500">Member Since</p>
                   <p className="p-16-semibold text-gray-900">
-                    {formatDate(user.createdAt)}
+                    {formatDate(userDocument.createdAt)}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -118,7 +126,7 @@ const ProfilePage = async () => {
                     <span className="status-badge status-completed">
                       Active Member
                     </span>
-                    {memberStats.successRate >= 90 && (
+                    {stats.successRate >= 90 && (
                       <span className="badge bg-blue-50 text-blue-700">
                         🌟 Top Contributor
                       </span>
@@ -133,49 +141,60 @@ const ProfilePage = async () => {
           <div className="glass-card p-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="h4-semibold text-gray-900">Contribution Summary</h3>
-                <span className="text-xs text-gray-500">Last updated: {formatDate(new Date())}</span>
+                <h3 className="h4-semibold text-gray-900">
+                  Contribution Summary
+                </h3>
+                <span className="text-xs text-gray-500">
+                  Last updated: {formatDate(new Date())}
+                </span>
               </div>
-              
+
               <div className="space-y-3">
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm text-gray-600">Total Contributed</span>
+                    <span className="text-sm text-gray-600">
+                      Total Contributed
+                    </span>
                     <span className="p-16-semibold text-gray-900">
-                      {formatCurrency(memberStats.totalAmount || 0)}
+                      {formatCurrency(stats.totalAmount || 0)}
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    Over {memberStats.transactionCount || 0} transactions
+                    Over {stats.transactionCount || 0} transactions
                   </div>
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-sm text-gray-600">Success Rate</span>
-                    <span className={`p-16-semibold ${
-                      memberStats.successRate > 80 ? 'text-emerald-600' : 
-                      memberStats.successRate > 60 ? 'text-amber-600' : 
-                      'text-red-600'
-                    }`}>
-                      {memberStats.successRate?.toFixed(1) || "0.0"}%
+                    <span
+                      className={`p-16-semibold ${
+                        stats.successRate > 80
+                          ? "text-emerald-600"
+                          : stats.successRate > 60
+                          ? "text-amber-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {stats.successRate?.toFixed(1) || "0.0"}%
                     </span>
                   </div>
                   <div className="text-xs text-gray-500">
-                    {memberStats.completedTransactions || 0} successful out of {memberStats.transactionCount || 0}
+                    {stats.completedTransactions || 0} successful out of{" "}
+                    {stats.transactionCount || 0}
                   </div>
                 </div>
 
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-100 hover:bg-gray-100 transition-colors">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm text-gray-600">Average Contribution</span>
+                    <span className="text-sm text-gray-600">
+                      Average Contribution
+                    </span>
                     <span className="p-16-semibold text-gray-900">
-                      {formatCurrency(memberStats.averageAmount || 0)}
+                      {formatCurrency(stats.averageAmount || 0)}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Per transaction
-                  </div>
+                  <div className="text-xs text-gray-500">Per transaction</div>
                 </div>
               </div>
             </div>
@@ -188,7 +207,8 @@ const ProfilePage = async () => {
             <div>
               <h3 className="h4-semibold text-gray-900">Recent Transactions</h3>
               <p className="text-sm text-gray-500">
-                Your last {Math.min(transactions.length, 5)} contribution activities
+                Your last {Math.min(transactions.length, 5)} contribution
+                activities
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -223,54 +243,56 @@ const ProfilePage = async () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {transactions.slice(0, 5).map((transaction: Transaction) => (
-                  <tr key={transaction._id} className="hover:bg-gray-50/50">
-                    <td className="p-3 text-sm text-gray-600">
-                      {formatDate(transaction.createdAt)}
-                    </td>
-                    <td className="p-3 text-sm font-medium text-gray-900">
-                      {formatCurrency(transaction.amount)}
-                    </td>
-                    <td className="p-3">
-                      <span
-                        className={`status-badge ${
-                          transaction.status === "completed"
-                            ? "status-completed"
-                            : transaction.status === "pending"
-                            ? "status-pending"
-                            : "status-failed"
-                        }`}
-                      >
-                        {transaction.status.charAt(0).toUpperCase() +
-                          transaction.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right text-sm text-gray-600">
-                      <span className="inline-flex items-center gap-1">
-                        {transaction.paymentMethod ? (
-                          <>
-                            {(() => {
-                              switch (transaction.paymentMethod) {
-                                case "gcash":
-                                  return "💸 GCash";
-                                case "paymaya":
-                                  return "💳 PayMaya";
-                                case "grab_pay":
-                                  return "💵 GrabPay";
-                                case "card":
-                                  return "💳 Card";
-                                default:
-                                  return transaction.paymentMethod;
-                              }
-                            })()}
-                          </>
-                        ) : (
-                          "N/A"
-                        )}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {transactions
+                  .slice(0, 5)
+                  .map((transaction: PopulatedTransaction) => (
+                    <tr key={transaction._id} className="hover:bg-gray-50/50">
+                      <td className="p-3 text-sm text-gray-600">
+                        {formatDate(transaction.createdAt)}
+                      </td>
+                      <td className="p-3 text-sm font-medium text-gray-900">
+                        {formatCurrency(transaction.amount)}
+                      </td>
+                      <td className="p-3">
+                        <span
+                          className={`status-badge ${
+                            transaction.status === "completed"
+                              ? "status-completed"
+                              : transaction.status === "pending"
+                              ? "status-pending"
+                              : "status-failed"
+                          }`}
+                        >
+                          {transaction.status.charAt(0).toUpperCase() +
+                            transaction.status.slice(1)}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right text-sm text-gray-600">
+                        <span className="inline-flex items-center gap-1">
+                          {transaction.paymentMethod ? (
+                            <>
+                              {(() => {
+                                switch (transaction.paymentMethod) {
+                                  case "gcash":
+                                    return "💸 GCash";
+                                  case "paymaya":
+                                    return "💳 PayMaya";
+                                  case "grab_pay":
+                                    return "💵 GrabPay";
+                                  case "card":
+                                    return "💳 Card";
+                                  default:
+                                    return transaction.paymentMethod;
+                                }
+                              })()}
+                            </>
+                          ) : (
+                            "N/A"
+                          )}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
 
