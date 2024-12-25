@@ -28,7 +28,6 @@ const Dashboard = async () => {
   if (!userId) redirect("/sign-in");
 
   try {
-
     const { user, redirection } = await getUserById(userId);
     if (redirection) redirect("/sign-in");
 
@@ -40,7 +39,7 @@ const Dashboard = async () => {
     const totalMembers = (await getTotalUsers()) || 0;
 
     // Ensure rawStat is treated as a single object
-    const rawStat = (await getMemberContributionStats(user._id as string)) || {
+    const rawStat = (await getMemberContributionStats(user?._id as string)) || {
       transactionCount: 0,
       lastTransaction: new Date(),
       completedTransactions: 0,
