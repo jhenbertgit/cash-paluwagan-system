@@ -5,8 +5,6 @@ import Transaction from "../database/models/transaction.model";
 import { revalidatePath } from "next/cache";
 import { handleError } from "../utils";
 import { connectToDB } from "../database/mongoose";
-import { redirect } from "next/navigation";
-
 import type { Document } from "mongoose";
 
 interface UserStats {
@@ -48,7 +46,7 @@ export async function createUser(user: CreateUserParams) {
  */
 export async function getUserById(
   userId: string
-): Promise<UserDocument | null> {
+): Promise<{ user: UserDocument | null; redirection: boolean }> {
   try {
     if (!userId) {
       throw new Error("User ID is required");
@@ -59,15 +57,13 @@ export async function getUserById(
     const user = await User.findOne({ clerkId: userId }).select("-__v");
 
     if (!user) {
-      redirect("/sign-in");
-      return null; // Ensure function returns a value
+      return { user: null, redirection: true };
     }
 
-    return serializeUser(user);
+    return { user: serializeUser(user), redirection: false };
   } catch (error) {
-    console.error("getUserById error:", error);
     handleError(error);
-    return null; // Ensure function returns a value in case of error
+    return { user: null, redirection: true }; // Return redirect status on error
   }
 }
 

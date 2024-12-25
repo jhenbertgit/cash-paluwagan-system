@@ -24,12 +24,12 @@ export const metadata = {
 
 const Dashboard = async () => {
   const { userId } = await auth();
+
   if (!userId) redirect("/sign-in");
 
   try {
-    const user = await getUserById(userId);
-    console.log("user: ", user);
-    if (!user) redirect("/sign-in");
+    const { user, redirection } = await getUserById(userId);
+    if (redirection) redirect("/sign-in");
 
     const summary = (await getContributionSummary()) || {
       totalAmount: 0,
@@ -38,8 +38,7 @@ const Dashboard = async () => {
 
     const totalMembers = (await getTotalUsers()) || 0;
 
-    // Ensure rawStat is treated as a single object
-    const rawStat = (await getMemberContributionStats(user._id as string)) || {
+    const rawStat = (await getMemberContributionStats(user?._id as string)) || {
       transactionCount: 0,
       lastTransaction: new Date(),
       completedTransactions: 0,
@@ -52,33 +51,33 @@ const Dashboard = async () => {
 
     const stat = {
       transactionCount: Array.isArray(rawStat)
-        ? rawStat[0].transactionCount || 0
+        ? rawStat[0]?.transactionCount || 0
         : rawStat.transactionCount || 0,
       lastTransaction: Array.isArray(rawStat)
-        ? rawStat[0].lastTransaction?.toISOString() || new Date().toISOString()
+        ? rawStat[0]?.lastTransaction?.toISOString() || new Date().toISOString()
         : rawStat.lastTransaction?.toISOString() || new Date().toISOString(),
       completedTransactions: Array.isArray(rawStat)
-        ? rawStat[0].completedTransactions || 0
+        ? rawStat[0]?.completedTransactions || 0
         : rawStat.completedTransactions || 0,
       failedTransactions: Array.isArray(rawStat)
-        ? rawStat[0].failedTransactions || 0
+        ? rawStat[0]?.failedTransactions || 0
         : rawStat.failedTransactions || 0,
       pendingTransactions: Array.isArray(rawStat)
-        ? rawStat[0].pendingTransactions || 0
+        ? rawStat[0]?.pendingTransactions || 0
         : rawStat.pendingTransactions || 0,
       totalAmount: Array.isArray(rawStat)
-        ? rawStat[0].totalAmount || 0
+        ? rawStat[0]?.totalAmount || 0
         : rawStat.totalAmount || 0,
       averageAmount: Array.isArray(rawStat)
-        ? rawStat[0].averageAmount || 0
+        ? rawStat[0]?.averageAmount || 0
         : rawStat.averageAmount || 0,
       successRate: Array.isArray(rawStat)
-        ? rawStat[0].successRate || 0
+        ? rawStat[0]?.successRate || 0
         : rawStat.successRate || 0,
     };
 
     const monthlyStats =
-      (await getMemberMonthlyStats(user._id as string)) || [];
+      (await getMemberMonthlyStats(user?._id as string)) || [];
     const formattedMonthlyStats = monthlyStats
       .map((stat: any) => {
         const date = new Date(stat.month);
@@ -99,20 +98,6 @@ const Dashboard = async () => {
       })
       .filter((stat: any) => stat.month !== "Unknown");
 
-    // Calculate next contribution date
-    const lastContributionDate = stat.lastTransaction
-      ? new Date(stat.lastTransaction)
-      : new Date();
-
-    const nextContributionDate = new Date(
-      lastContributionDate.getFullYear(),
-      lastContributionDate.getMonth() + 1,
-      30
-    );
-
-    // Check if contribution is due
-    const isContributionDue = isBefore(nextContributionDate, new Date());
-
     // Get all transactions and serialize them
     const rawTransactions = await getTransactions();
     const allTransactions = rawTransactions.map((t: any) => ({
@@ -128,7 +113,27 @@ const Dashboard = async () => {
         lastName: t.member?.lastName || "User",
         email: t.member?.email || "N/A",
       },
+      nextContributionDate:
+        t.nextContributionDate instanceof Date
+          ? t.nextContributionDate.toISOString()
+          : t.nextContributionDate
+          ? new Date(t.nextContributionDate).toISOString()
+          : new Date(
+              new Date().setMonth(new Date().getMonth() + 1, 30)
+            ).toISOString(),
     }));
+
+    // Accessing nextContributionDate from the first transaction
+    const firstTransaction = allTransactions[0];
+
+    const isContributionDue = firstTransaction
+      ? isBefore(new Date(firstTransaction.nextContributionDate), new Date())
+      : false;
+
+    // Use firstTransaction.nextContributionDate for display
+    const nextContributionDateDisplay = firstTransaction
+      ? format(new Date(firstTransaction.nextContributionDate), "MMMM d, yyyy")
+      : "N/A";
 
     // Get current cash recipient and serialize
     const rawRecipient = await selectCashRecipient();
@@ -146,10 +151,6 @@ const Dashboard = async () => {
     const recipientDisplay = recipientInfo ? (
       <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-100">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-primary-100 flex-center">
-            {recipientInfo.member.firstName[0]}
-            {recipientInfo.member.lastName[0]}
-          </div>
           <div>
             <div className="p-16-semibold text-gray-900">
               {recipientInfo.member.firstName} {recipientInfo.member.lastName}
@@ -215,7 +216,7 @@ const Dashboard = async () => {
               />
               <p className="text-sm text-gray-500">
                 Next contribution due:{" "}
-                {format(nextContributionDate, "MMMM d, yyyy")}
+                {format(nextContributionDateDisplay, "MMMM d, yyyy")}
               </p>
             </div>
 
@@ -235,7 +236,7 @@ const Dashboard = async () => {
             <StatsCards
               userStats={stat}
               totalAmount={summary.totalAmount}
-              nextContributionDate={nextContributionDate}
+              nextContributionDate={new Date(nextContributionDateDisplay)}
               isContributionDue={isContributionDue}
             />
           </div>

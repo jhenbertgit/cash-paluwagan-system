@@ -13,12 +13,15 @@ export const metadata = {
 
 const Pay = async () => {
   const { userId } = await auth();
-  if (!userId) redirect("/sign-in");
+  if (!userId) {
+    redirect("/sign-in");
+  }
 
-  const user = await getUserById(userId);
-  if (!user) redirect("/sign-in");
+  const { user, redirection } = await getUserById(userId);
 
-  const memberStats = await getMemberContributionStats(user._id as string);
+  if (redirection) redirect("/sign-in");
+
+  const memberStats = await getMemberContributionStats(user?._id as string);
   const stats = Array.isArray(memberStats) ? memberStats[0] : memberStats;
 
   const CONTRIBUTION_AMOUNT = 1000;
@@ -145,9 +148,9 @@ const Pay = async () => {
 
                 {/* Payment Form */}
                 <PaymentForm
-                  userId={user._id as string}
-                  name={`${user.firstName} ${user.lastName ?? ""}`}
-                  email={user.email}
+                  userId={user?._id as string}
+                  name={`${user?.firstName} ${user?.lastName ?? ""}`}
+                  email={user?.email ?? ""}
                 />
               </div>
             </div>
