@@ -1,7 +1,7 @@
 "use client";
 
-import { processContribution } from "@/lib/actions/transaction.action";
 import { useState } from "react";
+import { processContribution } from "@/lib/actions/checkout.action";
 
 interface PaymentFormProps {
   userId: string;

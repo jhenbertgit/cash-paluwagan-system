@@ -1,6 +1,6 @@
 import { Schema, model, models, Model } from "mongoose";
 
-interface ITransaction {
+export interface ITransaction {
   checkoutSessionId: string;
   amount: number;
   member: Schema.Types.ObjectId;

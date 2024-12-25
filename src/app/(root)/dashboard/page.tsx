@@ -6,16 +6,16 @@ import { isBefore } from "date-fns";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getUserById, getTotalUsers } from "@/lib/actions/user.actions";
+import { selectCashRecipient } from "@/lib/actions/recipient.actions";
+import { StatsCards } from "@/components/shared/StatsCards";
+import { TransactionsTable } from "@/components/shared/TransactionsTable";
+import { format } from "date-fns";
 import {
   getContributionSummary,
   getMemberContributionStats,
   getMemberMonthlyStats,
   getTransactions,
 } from "@/lib/actions/transaction.action";
-import { selectCashRecipient } from "@/lib/actions/recipient.actions";
-import { StatsCards } from "@/components/shared/StatsCards";
-import { TransactionsTable } from "@/components/shared/TransactionsTable";
-import { format } from "date-fns";
 
 export const metadata = {
   title: "Dashboard | Paluwagan",
@@ -30,15 +30,15 @@ const Dashboard = async () => {
     const user = await getUserById(userId);
     if (!user) redirect("/sign-in");
 
-    const summary = await getContributionSummary() || {
+    const summary = (await getContributionSummary()) || {
       totalAmount: 0,
       totalTransactions: 0,
     };
-    
-    const totalMembers = await getTotalUsers() || 0;
 
-    // Serialize the MongoDB stat object with defaults
-    const rawStat = await getMemberContributionStats(user._id) || {
+    const totalMembers = (await getTotalUsers()) || 0;
+
+    // Ensure rawStat is treated as a single object
+    const rawStat = (await getMemberContributionStats(user._id)) || {
       transactionCount: 0,
       lastTransaction: new Date(),
       completedTransactions: 0,
@@ -50,14 +50,30 @@ const Dashboard = async () => {
     };
 
     const stat = {
-      transactionCount: rawStat.transactionCount || 0,
-      lastTransaction: rawStat.lastTransaction?.toISOString() || new Date().toISOString(),
-      completedTransactions: rawStat.completedTransactions || 0,
-      failedTransactions: rawStat.failedTransactions || 0,
-      pendingTransactions: rawStat.pendingTransactions || 0,
-      totalAmount: rawStat.totalAmount || 0,
-      averageAmount: rawStat.averageAmount || 0,
-      successRate: rawStat.successRate || 0,
+      transactionCount: Array.isArray(rawStat)
+        ? rawStat[0].transactionCount || 0
+        : rawStat.transactionCount || 0,
+      lastTransaction: Array.isArray(rawStat)
+        ? rawStat[0].lastTransaction?.toISOString() || new Date().toISOString()
+        : rawStat.lastTransaction?.toISOString() || new Date().toISOString(),
+      completedTransactions: Array.isArray(rawStat)
+        ? rawStat[0].completedTransactions || 0
+        : rawStat.completedTransactions || 0,
+      failedTransactions: Array.isArray(rawStat)
+        ? rawStat[0].failedTransactions || 0
+        : rawStat.failedTransactions || 0,
+      pendingTransactions: Array.isArray(rawStat)
+        ? rawStat[0].pendingTransactions || 0
+        : rawStat.pendingTransactions || 0,
+      totalAmount: Array.isArray(rawStat)
+        ? rawStat[0].totalAmount || 0
+        : rawStat.totalAmount || 0,
+      averageAmount: Array.isArray(rawStat)
+        ? rawStat[0].averageAmount || 0
+        : rawStat.averageAmount || 0,
+      successRate: Array.isArray(rawStat)
+        ? rawStat[0].successRate || 0
+        : rawStat.successRate || 0,
     };
 
     const monthlyStats = (await getMemberMonthlyStats(user._id)) || [];
@@ -98,30 +114,58 @@ const Dashboard = async () => {
     // Get all transactions and serialize them
     const rawTransactions = await getTransactions();
     const allTransactions = rawTransactions.map((t: any) => ({
-      id: t._id.toString(),
-      amount: t.amount,
-      status: t.status,
+      id: t._id?.toString() || "",
+      amount: t.amount || 0,
+      status: t.status || "unknown",
       createdAt:
         t.createdAt instanceof Date
           ? t.createdAt.toISOString()
           : new Date(t.createdAt).toISOString(),
       member: {
-        firstName: t.member.firstName,
-        lastName: t.member.lastName,
-        email: t.member.email,
+        firstName: t.member?.firstName || "Unknown",
+        lastName: t.member?.lastName || "User",
+        email: t.member?.email || "N/A",
       },
     }));
 
     // Get current cash recipient and serialize
     const rawRecipient = await selectCashRecipient();
-    const recipientInfo = rawRecipient
-      ? {
-          member: {
-            firstName: rawRecipient.member.firstName,
-            lastName: rawRecipient.member.lastName,
-          },
-        }
-      : null;
+    const recipientInfo =
+      rawRecipient && rawRecipient.member
+        ? {
+            member: {
+              firstName: rawRecipient.member.firstName,
+              lastName: rawRecipient.member.lastName,
+            },
+          }
+        : null;
+
+    // Ensure recipientInfo is not null before accessing properties
+    const recipientDisplay = recipientInfo ? (
+      <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-100">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-primary-100 flex-center">
+            {recipientInfo.member.firstName[0]}
+            {recipientInfo.member.lastName[0]}
+          </div>
+          <div>
+            <div className="p-16-semibold text-gray-900">
+              {recipientInfo.member.firstName} {recipientInfo.member.lastName}
+            </div>
+            <p className="text-sm text-gray-500">Current Month Recipient</p>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+        <div className="flex items-center gap-3">
+          <span className="text-emerald-500">ℹ️</span>
+          <p className="text-sm text-emerald-700 font-medium">
+            Selection will be made once all members have contributed
+          </p>
+        </div>
+      </div>
+    );
 
     // Update the data processing for charts
     const processedData = {
@@ -150,7 +194,8 @@ const Dashboard = async () => {
           .length,
         pending: allTransactions.filter((t: any) => t.status === "pending")
           .length,
-        failed: allTransactions.filter((t: any) => t.status === "failed").length,
+        failed: allTransactions.filter((t: any) => t.status === "failed")
+          .length,
       },
 
       monthlyStats: formattedMonthlyStats,
@@ -167,12 +212,13 @@ const Dashboard = async () => {
                 subtitle="Monitor your contributions and system statistics"
               />
               <p className="text-sm text-gray-500">
-                Next contribution due: {format(nextContributionDate, "MMMM d, yyyy")}
+                Next contribution due:{" "}
+                {format(nextContributionDate, "MMMM d, yyyy")}
               </p>
             </div>
-            
+
             {isContributionDue && (
-              <a 
+              <a
                 href="/pay"
                 className="button-primary flex items-center gap-2 animate-pulse"
               >
@@ -207,32 +253,7 @@ const Dashboard = async () => {
                   <span className="badge badge-warning">Action Required</span>
                 )}
               </div>
-
-              {recipientInfo && "member" in recipientInfo ? (
-                <div className="mt-4 p-4 bg-primary-50 rounded-lg border border-primary-100">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-primary-100 flex-center">
-                      {recipientInfo.member.firstName[0]}
-                      {recipientInfo.member.lastName[0]}
-                    </div>
-                    <div>
-                      <div className="p-16-semibold text-gray-900">
-                        {recipientInfo.member.firstName} {recipientInfo.member.lastName}
-                      </div>
-                      <p className="text-sm text-gray-500">Current Month Recipient</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="text-emerald-500">ℹ️</span>
-                    <p className="text-sm text-emerald-700 font-medium">
-                      Selection will be made once all members have contributed
-                    </p>
-                  </div>
-                </div>
-              )}
+              {recipientDisplay}
             </div>
 
             {/* System Stats Card */}
@@ -240,7 +261,9 @@ const Dashboard = async () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="h3-bold text-gray-900">System Statistics</h3>
-                  <p className="text-sm text-gray-500">Overall system performance</p>
+                  <p className="text-sm text-gray-500">
+                    Overall system performance
+                  </p>
                 </div>
               </div>
 
@@ -251,11 +274,15 @@ const Dashboard = async () => {
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Total Contributions</span>
-                  <span className="stat-value">{summary.totalTransactions}</span>
+                  <span className="stat-value">
+                    {summary.totalTransactions}
+                  </span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Success Rate</span>
-                  <span className="stat-value">{stat.successRate.toFixed(1)}%</span>
+                  <span className="stat-value">
+                    {stat.successRate.toFixed(1)}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -266,7 +293,9 @@ const Dashboard = async () => {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="h3-bold text-gray-900">Contribution Analytics</h3>
+                  <h3 className="h3-bold text-gray-900">
+                    Contribution Analytics
+                  </h3>
                   <p className="text-sm text-gray-500">
                     Track contribution patterns and member participation
                   </p>

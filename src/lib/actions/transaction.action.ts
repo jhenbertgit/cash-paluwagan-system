@@ -1,100 +1,22 @@
 "use server";
 
-/*eslint-disable @typescript-eslint/no-explicit-any */
-import Transaction from "../database/models/transaction.model";
 import User from "../database/models/user.model";
-import mongoose from "mongoose";
+import mongoose, { PipelineStage, Types } from "mongoose";
+import Transaction, {
+  ITransaction,
+} from "../database/models/transaction.model";
 import { handleError } from "../utils";
-import { redirect } from "next/navigation";
 import { connectToDB } from "../database/mongoose";
-import { PipelineStage, Types } from "mongoose";
 
 /**
- * Processes a payment checkout through PayMongo payment gateway
- * @param {CheckoutTransactionParams} params - The checkout parameters
- * @throws {Error} When PayMongo secret key or server URL is missing
- * @throws {Error} When checkout session creation fails
- * @throws {Error} When checkout URL is missing in PayMongo response
+ * Creates a new transaction in the database
+ * @param {CreateTransactionParams} transaction - The transaction parameters
+ * @returns {Promise<object>} The created transaction object
+ * @throws {Error} When database connection or transaction creation fails
  */
-export async function processContribution({
-  name,
-  email,
-  userId,
-}: CheckoutTransactionParams) {
-  const secretKey = process.env.PAYMONGO_SECRET;
-  const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
-
-  // Validate environment variables
-  if (!secretKey || !serverUrl) {
-    throw new Error(
-      !secretKey ? "PayMongo secret key is missing" : "Server URL is missing"
-    );
-  }
-
-  const PAYMONGO_API_URL = "https://api.paymongo.com/v1/checkout_sessions";
-  const AMOUNT = 100000;
-
-  const options = {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "Content-Type": "application/json",
-      authorization: `Basic ${Buffer.from(secretKey).toString("base64")}`,
-    },
-    body: JSON.stringify({
-      data: {
-        attributes: {
-          billing: { name, email },
-          send_email_receipt: false,
-          show_description: true,
-          show_line_items: true,
-          line_items: [
-            {
-              currency: "PHP",
-              quantity: 1,
-              name: "Paluwagan",
-              amount: AMOUNT,
-            },
-          ],
-          payment_method_types: ["gcash", "grab_pay", "paymaya", "card"],
-          description: "Paluwagan monthly contribution",
-          success_url: `${serverUrl}/dashboard`,
-          cancel_url: `${serverUrl}/pay`,
-          metadata: {
-            memberId: userId,
-          },
-        },
-      },
-    }),
-  };
-
-  try {
-    const response = await fetch(PAYMONGO_API_URL, options);
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to create checkout session: ${response.statusText}`
-      );
-    }
-
-    const session = await response.json();
-    const checkoutUrl = session?.data?.attributes?.checkout_url;
-
-    if (!checkoutUrl) {
-      throw new Error("Checkout URL is missing in the PayMongo response");
-    }
-
-    redirect(checkoutUrl);
-  } catch (error) {
-    if (!(error instanceof Error) || error.message !== "NEXT_REDIRECT") {
-      console.error("An error occurred during checkout:", error);
-      throw error;
-    }
-    throw error;
-  }
-}
-
-export async function createTransaction(transaction: CreateTransactionParams) {
+export async function createTransaction(
+  transaction: CreateTransactionParams
+): Promise<object> {
   try {
     await connectToDB();
 
@@ -105,23 +27,26 @@ export async function createTransaction(transaction: CreateTransactionParams) {
 
     return JSON.parse(JSON.stringify(newTransaction));
   } catch (error) {
-    console.log(error);
+    handleError(error);
+    return {};
   }
 }
 
+
+
 /**
  * Retrieves all transactions from the database
- * @turns {Promise<object[]>} Array of transaction objects
+ * @returns {Promise<PopulatedTransaction[]>} Array of transaction objects
  * @throws {Error} When database connection or query fails
  */
-export async function getTransactions() {
+export async function getTransactions(): Promise<PopulatedTransaction[]> {
   try {
     await connectToDB();
     // Get all transactions, sorted by creation date (newest first)
     const transactions = await Transaction.find({})
       .populate("member", "firstName lastName email") // Populate member details
       .sort({ createdAt: -1 });
-    return JSON.parse(JSON.stringify(transactions));
+    return JSON.parse(JSON.stringify(transactions)) as PopulatedTransaction[];
   } catch (error) {
     console.error("Error fetching transactions:", error);
     throw error;
@@ -131,9 +56,11 @@ export async function getTransactions() {
 /**
  * Retrieves transactions for a specific member
  * @param {string} memberId - The member's ID
- * @returns {Promise<object[]>} Array of member's transactions
+ * @returns {Promise<ITransaction[]>} Array of member's transactions
  */
-export async function getMemberTransactions(memberId: string): Promise<any> {
+export async function getMemberTransactions(
+  memberId: string
+): Promise<ITransaction[]> {
   try {
     await connectToDB();
 
@@ -144,7 +71,8 @@ export async function getMemberTransactions(memberId: string): Promise<any> {
       .populate("member", "firstName lastName email")
       .sort({ createdAt: -1 });
 
-    return JSON.parse(JSON.stringify(transactions));
+    // Properly serialize the MongoDB documents
+    return JSON.parse(JSON.stringify(transactions)) as ITransaction[];
   } catch (error) {
     console.error("Error fetching member transactions:", error);
     throw error;
@@ -153,9 +81,9 @@ export async function getMemberTransactions(memberId: string): Promise<any> {
 
 /**
  * Get transaction statistics
- * @returns {Promise<object>} Transaction statistics
+ * @returns {Promise<TransactionStats>} Transaction statistics
  */
-export async function getTransactionStats(): Promise<any> {
+export async function getTransactionStats(): Promise<TransactionStats> {
   try {
     await connectToDB();
     const stats = await Transaction.aggregate([
@@ -178,11 +106,11 @@ export async function getTransactionStats(): Promise<any> {
 /**
  * Get transaction statistics per member
  * @param {string} memberId - Optional member ID to filter stats for specific member
- * @returns {Promise<object>} Transaction statistics
+ * @returns {Promise<MemberContributionStats | MemberContributionStats[]>} Transaction statistics
  */
 export async function getMemberContributionStats(
   memberId?: string
-): Promise<any> {
+): Promise<MemberContributionStats | MemberContributionStats[]> {
   try {
     await connectToDB();
 
@@ -192,7 +120,7 @@ export async function getMemberContributionStats(
     if (memberId) {
       const userExists = await User.findById(memberObjectId);
       if (!userExists) {
-        const defaultStats = {
+        const defaultStats: MemberContributionStats = {
           memberId: memberObjectId || null,
           memberName: "Unknown User",
           email: "N/A",
@@ -280,7 +208,7 @@ export async function getMemberContributionStats(
 
     const stats = await Transaction.aggregate(pipeline);
 
-    const defaultStats = {
+    const defaultStats: MemberContributionStats = {
       memberId: memberObjectId || null,
       memberName: "Unknown User",
       email: "N/A",
@@ -295,9 +223,9 @@ export async function getMemberContributionStats(
     };
 
     return memberId
-      ? stats[0] || defaultStats
+      ? (stats[0] as MemberContributionStats) || defaultStats
       : stats.length
-      ? stats
+      ? (stats as MemberContributionStats[])
       : [defaultStats];
   } catch (error) {
     console.error("Error fetching member transaction stats:", error);
@@ -308,9 +236,11 @@ export async function getMemberContributionStats(
 /**
  * Get monthly transaction statistics for a member
  * @param {string} memberId - Member ID
- * @returns {Promise<object[]>} Monthly transaction statistics
+ * @returns {Promise<MonthlyTransactionStats[]>} Monthly transaction statistics
  */
-export async function getMemberMonthlyStats(memberId: string) {
+export async function getMemberMonthlyStats(
+  memberId: string
+): Promise<MonthlyTransactionStats[]> {
   try {
     await connectToDB();
 
@@ -350,7 +280,7 @@ export async function getMemberMonthlyStats(memberId: string) {
       },
     ]);
 
-    return monthlyStats;
+    return monthlyStats as MonthlyTransactionStats[];
   } catch (error) {
     handleError(error);
     return [];
@@ -359,9 +289,9 @@ export async function getMemberMonthlyStats(memberId: string) {
 
 /**
  * Get transaction summary for dashboard
- * @returns {Promise<object>} Transaction summary statistics
+ * @returns {Promise<TransactionSummary>} Transaction summary statistics
  */
-export async function getContributionSummary(): Promise<any> {
+export async function getContributionSummary(): Promise<TransactionSummary> {
   try {
     await connectToDB();
 
@@ -433,10 +363,17 @@ export async function getContributionSummary(): Promise<any> {
   }
 }
 
+/**
+ * Retrieves transactions for a specific member with optional limit
+ * @param {string} memberId - The ID of the member to fetch transactions for
+ * @param {number} [limit] - Optional maximum number of transactions to return
+ * @returns {Promise<TransactionDocument[]>} Array of member's transactions, sorted by creation date (newest first)
+ * @throws {Error} When database connection or query fails
+ */
 export async function getTransactionsByMember(
   memberId: string,
   limit?: number
-): Promise<any> {
+): Promise<ITransaction[]> {
   try {
     await connectToDB();
 
@@ -450,7 +387,7 @@ export async function getTransactionsByMember(
 
     const transactions = await query.exec();
     // Properly serialize the MongoDB documents
-    return JSON.parse(JSON.stringify(transactions));
+    return JSON.parse(JSON.stringify(transactions)) as ITransaction[];
   } catch (error) {
     handleError(error);
     return [];

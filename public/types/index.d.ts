@@ -60,3 +60,59 @@ interface CreateTransactionParams {
   /** Transaction timestamp */
   createdAt: Date;
 }
+
+interface TransactionSummary {
+  totalAmount: number;
+  totalTransactions: number;
+  completedAmount: number;
+  completedCount: number;
+  averageAmount: number;
+  minAmount: number;
+  maxAmount: number;
+  successRate: number;
+}
+
+interface TransactionStats {
+  totalAmount: number;
+  count: number;
+  avgAmount: number;
+}
+
+interface MemberContributionStats {
+  memberId: Types.ObjectId | null;
+  memberName: string;
+  email: string;
+  totalAmount: number;
+  transactionCount: number;
+  averageAmount: number;
+  lastTransaction: Date | null;
+  completedTransactions: number;
+  failedTransactions: number;
+  pendingTransactions: number;
+  successRate: number;
+}
+
+/**
+ * Interface for monthly transaction statistics
+ */
+interface MonthlyTransactionStats {
+  month: Date;
+  totalAmount: number;
+  count: number;
+}
+
+/**
+ * Interface for a populated member object
+ */
+interface PopulatedMember {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+/**
+ * Interface for a transaction object with populated member details
+ */
+interface PopulatedTransaction extends Omit<ITransaction, "member"> {
+  member: PopulatedMember;
+}

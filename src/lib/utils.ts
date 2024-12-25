@@ -20,6 +20,13 @@ interface CustomError {
   code?: number;
 }
 
+/**
+ * Handles errors by categorizing them into custom error types and logging them.
+ * Throws a new error with a formatted message.
+ *
+ * @param {unknown} error - The error to handle, which can be of any type.
+ * @throws {Error} Throws a new error with a formatted message based on the error type.
+ */
 export const handleError = (error: unknown): never => {
   let customError: CustomError = {
     type: "Unknown",
