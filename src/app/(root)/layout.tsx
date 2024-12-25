@@ -1,5 +1,5 @@
-import MobileNav from "@/components/shared/MobileNav";
-import Sidebar from "@/components/shared/Sidebar";
+import MobileNav from "@/app/components/shared/MobileNav";
+import Sidebar from "@/app/components/shared/Sidebar";
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => {
   return (

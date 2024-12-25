@@ -1,4 +1,4 @@
-import Banner from "@/components/shared/Banner";
+import Banner from "@/app/components/shared/Banner";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

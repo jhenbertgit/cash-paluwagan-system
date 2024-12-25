@@ -1,3 +1,5 @@
+"use server";
+
 import { NextResponse } from "next/server";
 import { createTransaction } from "@/lib/actions/transaction.action";
 

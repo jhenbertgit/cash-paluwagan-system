@@ -7,6 +7,7 @@ export interface IUser extends Document {
   photo: string;
   firstName: string;
   lastName: string;
+  createdAt: Date;
 }
 
 const UserSchema = new Schema({
@@ -16,6 +17,7 @@ const UserSchema = new Schema({
   photo: { type: String, require: true },
   firstName: { type: String },
   lastName: { type: String },
+  createdAt: { type: Date, default: Date.now },
 });
 
 const User = models?.User || model("User", UserSchema);
