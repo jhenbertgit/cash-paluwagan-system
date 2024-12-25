@@ -54,11 +54,9 @@ interface CreateTransactionParams {
   /** Transaction status */
   status: "completed" | "failed" | "pending";
   /** Payment method used */
-  paymentMethod?: string;
+  paymentMethod: string;
   /** Error message for failed transactions */
   error?: string;
-  /** Transaction timestamp */
-  createdAt: Date;
 }
 
 interface TransactionSummary {
