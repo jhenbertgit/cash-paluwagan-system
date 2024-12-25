@@ -1,10 +1,10 @@
-import Header from "@/components/shared/Header";
+import Header from "@/app/components/shared/Header";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/actions/user.actions";
 import { getMemberContributionStats } from "@/lib/actions/transaction.action";
-import { PaymentForm } from "@/components/forms/PaymentForm";
+import { PaymentForm } from "@/app/components/forms/PaymentForm";
 
 export const metadata = {
   title: "Pay | Paluwagan",

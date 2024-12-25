@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
-import Header from "@/components/shared/Header";
-import { DashboardCharts } from "@/components/shared/DashboardCharts";
+import Header from "@/app/components/shared/Header";
+import { DashboardCharts } from "@/app/components/shared/DashboardCharts";
 import { isBefore } from "date-fns";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getUserById, getTotalUsers } from "@/lib/actions/user.actions";
 import { selectCashRecipient } from "@/lib/actions/recipient.actions";
-import { StatsCards } from "@/components/shared/StatsCards";
-import { TransactionsTable } from "@/components/shared/TransactionsTable";
+import { StatsCards } from "@/app/components/shared/StatsCards";
+import { TransactionsTable } from "@/app/components/shared/TransactionsTable";
 import { format } from "date-fns";
 import {
   getMemberContributionStats,

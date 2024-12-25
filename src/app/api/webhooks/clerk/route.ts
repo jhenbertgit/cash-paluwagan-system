@@ -1,3 +1,5 @@
+"use server";
+
 import { createUser, deleteUser, updateUser } from "@/lib/actions/user.actions";
 import { WebhookEvent, clerkClient, UserJSON } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
@@ -25,7 +27,6 @@ const WEBHOOK_HANDLERS: Record<string, WebhookHandler> = {
       firstName: first_name!,
       lastName: last_name!,
       photo: photo ?? "",
-      createdAt: new Date(), // Add createdAt field with current date
     };
 
     const newUser = await createUser(user);

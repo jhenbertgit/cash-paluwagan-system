@@ -1,3 +1,5 @@
+"use server";
+
 import { redirect } from "next/navigation";
 
 /**
@@ -15,6 +17,7 @@ export async function processContribution({
   const secretKey = process.env.PAYMONGO_SECRET;
   const serverUrl = process.env.NEXT_PUBLIC_SERVER_URL;
 
+  console.log("process: ", process.env.PAYMONGO_SECRET);
   // Validate environment variables
   if (!secretKey || !serverUrl) {
     throw new Error(
