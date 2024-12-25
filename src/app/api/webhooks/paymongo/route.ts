@@ -40,6 +40,7 @@ async function handlePaymentPaid(data: WebhookEvent["data"]) {
     attributes: { payment_intent, payment_method_used, metadata },
   } = data;
 
+  console.log("handlePaymentData: ", data);
   const { status, amount } = payment_intent?.attributes ?? {};
 
   const transaction: CreateTransactionParams = {
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
     const { data } = JSON.parse(rawBody);
     const eventType = data?.attributes?.type;
 
+    console.log("data: ", data);
     switch (eventType) {
       case WEBHOOK_EVENTS.PAYMENT_PAID:
         return handlePaymentPaid(data?.attributes?.data);
