@@ -18,7 +18,8 @@ const Pay = async () => {
   const user = await getUserById(userId);
   if (!user) redirect("/sign-in");
 
-  const memberStats = await getMemberContributionStats(user._id);
+  const memberStats = await getMemberContributionStats(user._id as string);
+  const stats = Array.isArray(memberStats) ? memberStats[0] : memberStats;
 
   const CONTRIBUTION_AMOUNT = 1000;
 
@@ -144,8 +145,8 @@ const Pay = async () => {
 
                 {/* Payment Form */}
                 <PaymentForm
-                  userId={user._id}
-                  name={`${user.firstName} ${user.lastName}`}
+                  userId={user._id as string}
+                  name={`${user.firstName} ${user.lastName ?? ""}`}
                   email={user.email}
                 />
               </div>
@@ -175,7 +176,7 @@ const Pay = async () => {
                   </div>
                 </div>
 
-                {memberStats.pendingTransactions > 0 && (
+                {stats.pendingTransactions > 0 && (
                   <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
                     <div className="flex items-start gap-2">
                       <span>⚠️</span>
@@ -184,10 +185,10 @@ const Pay = async () => {
                           Pending Transactions
                         </p>
                         <p className="text-xs text-amber-700 mt-1">
-                          You have {memberStats.pendingTransactions} pending
+                          You have {stats.pendingTransactions} pending
                           contribution
-                          {memberStats.pendingTransactions > 1 ? "s" : ""}.
-                          Please wait for confirmation.
+                          {stats.pendingTransactions > 1 ? "s" : ""}. Please
+                          wait for confirmation.
                         </p>
                       </div>
                     </div>
