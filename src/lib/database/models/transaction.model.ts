@@ -5,14 +5,13 @@ export interface ITransaction {
   amount: number;
   member: Schema.Types.ObjectId;
   status: "completed" | "failed" | "pending";
-  paymentMethod?: string;
+  paymentMethod: string;
   error?: string | null;
   createdAt: Date;
   updatedAt: Date;
-  contributionCycle: number;
-  contributionYear: number;
-  nextContributionDate: Date;
-  calculateNextContributionDate(): Date;
+  contributionCycle?: number;
+  contributionYear?: number;
+  nextContributionDate?: Date;
 }
 
 interface TransactionModel extends Model<ITransaction> {
@@ -76,7 +75,12 @@ TransactionSchema.pre("save", function (next) {
     const date = new Date(this.createdAt);
     this.contributionCycle = date.getMonth() + 1;
     this.contributionYear = date.getFullYear();
-    this.nextContributionDate = new Date(date.setMonth(date.getMonth() + 1));
+    const nextMonth = new Date(date.setMonth(date.getMonth() + 1));
+    this.nextContributionDate = new Date(
+      nextMonth.getFullYear(),
+      nextMonth.getMonth(),
+      30
+    );
   }
   this.updatedAt = new Date();
   next();
@@ -85,13 +89,6 @@ TransactionSchema.pre("save", function (next) {
 // Add middleware to handle user deletion
 TransactionSchema.statics.deleteUserTransactions = async function (userId) {
   await this.deleteMany({ member: userId });
-};
-
-// Add method to calculate next payment date
-TransactionSchema.methods.calculateNextContributionDate = function () {
-  const nextDate = new Date(this.createdAt);
-  nextDate.setMonth(nextDate.getMonth() + 1);
-  return nextDate;
 };
 
 const Transaction = (models.Transaction ||
