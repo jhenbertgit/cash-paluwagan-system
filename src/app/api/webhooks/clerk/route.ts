@@ -85,8 +85,6 @@ export async function POST(request: Request) {
   try {
     const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
 
-    console.log("CLERK_WEBHOOK_SECRET: ", WEBHOOK_SECRET);
-
     if (!WEBHOOK_SECRET) {
       throw new Error("Missing WEBHOOK_SECRET environment variable");
     }
@@ -105,8 +103,6 @@ export async function POST(request: Request) {
     const payload = await request.json();
     const body = JSON.stringify(payload);
     const wh = new Webhook(WEBHOOK_SECRET);
-
-    console.log("request_body: ", body);
 
     let evt: WebhookEvent;
     try {

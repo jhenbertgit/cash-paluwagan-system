@@ -7,6 +7,7 @@ import {
   getMemberContributionStats,
 } from "@/lib/actions/transaction.action";
 import { format } from "date-fns";
+import Header from "@/app/components/shared/Header";
 
 interface UserDocument {
   _id: string;
@@ -21,17 +22,12 @@ const ProfilePage = async () => {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const user = await getUserById(userId);
-  if (!user) redirect("/sign-in");
-
-  if (!user) {
-    redirect("/sign-in");
-    return;
-  }
+  const { user, redirection } = await getUserById(userId);
+  if (redirection) redirect("/sign-in");
 
   const userDocument = user as UserDocument;
 
-  const userID = user._id as string;
+  const userID = user?._id as string;
 
   const memberStats = await getMemberContributionStats(userID);
   const stats = Array.isArray(memberStats) ? memberStats[0] : memberStats;
@@ -62,12 +58,11 @@ const ProfilePage = async () => {
       <div className="space-y-8">
         {/* Profile Header with Action Items */}
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="h1-bold text-gray-900">Profile</h1>
-            <p className="text-gray-500">
-              View and manage your contribution history and account details
-            </p>
-          </div>
+          <Header
+            title="Profile"
+            subtitle="View and manage your contribution history and account details"
+          />
+
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
@@ -93,17 +88,13 @@ const ProfilePage = async () => {
             <div className="glass-card p-6 space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 rounded-full bg-primary-100 flex-center">
-                    <span className="h2-bold text-primary-600">
-                      {userDocument.firstName[0]}
-                      {userDocument.lastName[0]}
-                    </span>
-                  </div>
                   <div>
-                    <h2 className="h3-bold text-gray-900">
+                    <h2 className="text-lg font-bold text-gray-900">
                       {userDocument.firstName} {userDocument.lastName}
                     </h2>
-                    <p className="text-gray-500">{userDocument.email}</p>
+                    <p className="text-sm text-gray-500">
+                      {userDocument.email}
+                    </p>
                   </div>
                 </div>
                 {stats.pendingTransactions > 0 && (
@@ -119,18 +110,18 @@ const ProfilePage = async () => {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2">
                   <p className="text-sm text-gray-500">Member Since</p>
-                  <p className="p-16-semibold text-gray-900">
+                  <p className="text-base font-semibold text-gray-900">
                     {formatDate(userDocument.createdAt)}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <p className="text-sm text-gray-500">Membership Status</p>
                   <div className="flex items-center gap-2">
-                    <span className="status-badge status-completed">
+                    <span className="bg-green-100 text-green-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">
                       Active Member
                     </span>
                     {stats.successRate >= 90 && (
-                      <span className="badge bg-blue-50 text-blue-700">
+                      <span className="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-0.5 rounded">
                         🌟 Top Contributor
                       </span>
                     )}
