@@ -67,7 +67,6 @@ export async function POST(request: Request) {
     const { data } = JSON.parse(rawBody);
     const eventType = data?.attributes?.type;
 
-    console.log("data: ", data);
     switch (eventType) {
       case WEBHOOK_EVENTS.PAYMENT_PAID:
         return handlePaymentPaid(data?.attributes?.data);

@@ -57,15 +57,12 @@ const TransactionSchema = new Schema<ITransaction>({
   },
   contributionCycle: {
     type: Number,
-    required: true,
   },
   contributionYear: {
     type: Number,
-    required: true,
   },
   nextContributionDate: {
     type: Date,
-    required: true,
   },
 });
 
