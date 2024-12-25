@@ -7,11 +7,11 @@ export interface ITransaction {
   status: "completed" | "failed" | "pending";
   paymentMethod: string;
   error?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
   contributionCycle?: number;
   contributionYear?: number;
   nextContributionDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface TransactionModel extends Model<ITransaction> {
@@ -47,14 +47,6 @@ const TransactionSchema = new Schema<ITransaction>({
     type: String,
     default: null,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
   contributionCycle: {
     type: Number,
   },
@@ -63,6 +55,14 @@ const TransactionSchema = new Schema<ITransaction>({
   },
   nextContributionDate: {
     type: Date,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
   },
 });
 

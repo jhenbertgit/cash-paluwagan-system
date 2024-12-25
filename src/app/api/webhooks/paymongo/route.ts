@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import { createTransaction } from "@/lib/actions/transaction.action";
-
+import { handleError } from "@/lib/utils";
 import type { WebhookEvent, PaymentStatus } from "./types";
 
 const WEBHOOK_EVENTS = {
@@ -49,7 +49,6 @@ async function handlePaymentPaid(data: WebhookEvent["data"]) {
     memberId: metadata?.memberId,
     status: mapPaymentStatus(status) as "completed" | "pending" | "failed",
     paymentMethod: payment_method_used,
-    createdAt: new Date(),
   };
 
   const newTransaction = await createTransaction(transaction);
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
         return createResponse(false, `Unhandled event type: ${eventType}`);
     }
   } catch (error) {
-    console.error("Webhook Error:", error);
+    handleError(error);
 
     return createResponse(false, "Webhook processing failed", {
       error: error instanceof Error ? error.message : "Unknown error",
