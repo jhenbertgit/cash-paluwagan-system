@@ -1,6 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/actions/user.actions";
+import { getTransactionsByMember } from "@/lib/actions/transaction.action";
+import { format } from "date-fns";
+import Link from "next/link";
+import { getMemberContributionStats } from "@/lib/actions/transaction.action";
 import { getTransactionsByMember } from "@/lib/actions/transaction.action";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -20,6 +25,7 @@ const ProfilePage = async () => {
   if (!userId) redirect("/sign-in");
 
   const user = await getUserById(userId);
+  if (!user) redirect("/sign-in");
 
   if (!user) {
     redirect("/sign-in");

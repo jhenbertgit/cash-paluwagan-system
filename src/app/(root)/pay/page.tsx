@@ -1,7 +1,17 @@
 import Header from "@/components/shared/Header";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/actions/user.actions";
+import { getMemberContributionStats } from "@/lib/actions/transaction.action";
+import Link from "next/link";
+import { PaymentForm } from "@/components/forms/PaymentForm";
+
+export const metadata = {
+  title: "Pay | Paluwagan",
+  description: "Make your monthly contribution securely through PayMongo",
+};
 import { getMemberContributionStats } from "@/lib/actions/transaction.action";
 import Link from "next/link";
 import { PaymentForm } from "@/components/forms/PaymentForm";
