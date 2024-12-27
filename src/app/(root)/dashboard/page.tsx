@@ -143,8 +143,7 @@ const Dashboard = async () => {
       rawRecipient && rawRecipient.member
         ? {
             member: {
-              firstName: rawRecipient.member.firstName,
-              lastName: rawRecipient.member.lastName,
+              name: rawRecipient.member,
             },
           }
         : null;
@@ -155,7 +154,7 @@ const Dashboard = async () => {
         <div className="flex items-center gap-3">
           <div>
             <div className="p-16-semibold text-gray-900">
-              {recipientInfo.member.firstName} {recipientInfo.member.lastName}
+              {recipientInfo.member.name}
             </div>
             <p className="text-sm text-gray-500">Current Month Recipient</p>
           </div>
@@ -166,7 +165,7 @@ const Dashboard = async () => {
         <div className="flex items-center gap-3">
           <span className="text-emerald-500">ℹ️</span>
           <p className="text-sm text-emerald-700 font-medium">
-            Selection will be made once all members have contributed
+            Selection process is every 30th day of the month
           </p>
         </div>
       </div>
